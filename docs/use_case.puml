@@ -1,0 +1,60 @@
+@startuml
+title Diagramme de cas d'utilisation - Gestion des formations des formateurs
+
+actor "Responsable CDC" as CDC
+actor "Responsable formation" as RF
+actor "Responsable DR" as DR
+actor "Formateur participant" as FP
+actor "Formateur animateur" as FA
+actor "Administrateur système" as Admin
+
+rectangle "Système de gestion des formations" {
+  usecase "Planifier sessions" as UC1
+  usecase "Suivre parcours" as UC2
+  usecase "Gérer thématiques et ressources" as UC3
+  usecase "Enregistrer absences" as UC4
+  usecase "Générer tableaux de bord des absences" as UC5
+  usecase "Gérer hébergements" as UC6
+  usecase "Planifier sites & déplacements" as UC7
+  usecase "Centraliser et accéder aux documents" as UC8
+  usecase "Générer rapports & analyses" as UC9
+  usecase "Évaluer formations" as UC10
+  usecase "Gérer comptes et rôles" as UC11
+  usecase "Maintenance et sécurité" as UC12
+}
+
+CDC --> UC1
+CDC --> UC3
+CDC --> UC9
+
+RF --> UC1
+RF --> UC2
+RF --> UC3
+RF --> UC4
+RF --> UC5
+RF --> UC6
+RF --> UC7
+RF --> UC8
+RF --> UC9
+RF --> UC10
+RF --> UC11
+
+DR --> UC2
+DR --> UC4
+DR --> UC5
+DR --> UC9
+
+FP --> UC2
+FP --> UC4
+FP --> UC8
+FP --> UC10
+
+FA --> UC3
+FA --> UC4
+FA --> UC8
+FA --> UC10
+
+Admin --> UC11
+Admin --> UC12
+
+@enduml
