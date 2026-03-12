@@ -10,7 +10,7 @@ class SitesController extends Controller
 {
     public function index()
     {
-        return response()->json(Site::with('centre')->get());
+        return response()->json(Site::with('centre', 'centre.direction')->get());
     }
 
     public function store(Request $request)

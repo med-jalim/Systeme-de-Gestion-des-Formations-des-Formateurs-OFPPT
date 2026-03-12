@@ -34,6 +34,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const StepParticipants = () => {
   const { setValue, getValues } = useFormContext<
@@ -63,7 +64,7 @@ export const StepParticipants = () => {
   );
 
   // Fetch All Potential Participants (same users endpoint)
-  const { data: allUsers } = useQuery({
+  const { data: allUsers, isLoading: usersLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const response = await axiosInstance.get("/users");
@@ -74,7 +75,7 @@ export const StepParticipants = () => {
   const participantsData = useMemo(() => allUsers || [], [allUsers]);
 
   // Fetch Themes based on formationId
-  const { data: themes } = useQuery({
+  const { data: themes, isLoading: themesLoading } = useQuery({
     queryKey: ["themes", formationId],
     queryFn: async () => {
       if (!formationId) return [];
@@ -532,6 +533,10 @@ export const StepParticipants = () => {
       participantsAssignments,
     ],
   );
+
+  if (usersLoading || themesLoading) {
+    return <Skeleton className="h-[400px] w-full rounded-lg" />;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

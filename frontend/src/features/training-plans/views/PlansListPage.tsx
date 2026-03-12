@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useTrainingPlans } from "../hooks/useTrainingPlans";
 import { PlansTable } from "../components/PlansTable";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle } from "lucide-react";
 
 export const PlansListPage = () => {
@@ -37,15 +38,21 @@ export const PlansListPage = () => {
       </div>
 
       {loading && plans.length === 0 ? (
-        <div className="flex justify-center p-12 text-muted-foreground">
-          Chargement des données...
+        <div className="space-y-4 pt-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+          <Skeleton className="h-[400px] w-full rounded-xl" />
         </div>
       ) : (
         <PlansTable
           plans={plans}
           onDelete={handleDelete}
-          onEdit={(plan) => console.log("Edit plan", plan)}
-          onView={(plan) => console.log("View plan", plan)}
+          onEdit={(plan) =>
+            navigate(`/plans/${plan.id}`, { state: { edit: true } })
+          }
+          onView={(plan) => navigate(`/plans/${plan.id}`)}
         />
       )}
     </div>

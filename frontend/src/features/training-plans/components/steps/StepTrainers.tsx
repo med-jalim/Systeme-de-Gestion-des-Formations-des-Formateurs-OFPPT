@@ -51,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const StepTrainers = () => {
   const { setValue, getValues } = useFormContext<
@@ -72,7 +73,7 @@ export const StepTrainers = () => {
   >([]);
 
   // Fetch All Users (Formateurs)
-  const { data: allUsers } = useQuery<User[]>({
+  const { data: allUsers, isLoading: trainersLoading } = useQuery<User[]>({
     queryKey: ["users"],
     queryFn: async () => {
       const response = await axiosInstance.get("/users");
@@ -324,6 +325,10 @@ export const StepTrainers = () => {
     ],
     [trainersData, availableThemes, handleUpdateThemes, handleRemoveTrainer],
   );
+
+  if (trainersLoading) {
+    return <Skeleton className="h-[400px] w-full rounded-lg" />;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

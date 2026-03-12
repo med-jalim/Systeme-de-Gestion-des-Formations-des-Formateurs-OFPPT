@@ -37,6 +37,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const StepLogistics = () => {
   const { control, setValue, getValues } =
@@ -61,7 +62,7 @@ export const StepLogistics = () => {
   );
 
   // Fetch Accommodations list
-  const { data: accommodationsList } = useQuery<any[]>({
+  const { data: accommodationsList, isLoading: accLoading } = useQuery<any[]>({
     queryKey: ["accommodations"],
     queryFn: async () => {
       const response = await axiosInstance.get("/accommodations");
@@ -70,7 +71,7 @@ export const StepLogistics = () => {
   });
 
   // Fetch Users to get names/matricules
-  const { data: allUsers } = useQuery<any[]>({
+  const { data: allUsers, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["users"],
     queryFn: async () => {
       const response = await axiosInstance.get("/users");
@@ -148,7 +149,7 @@ export const StepLogistics = () => {
           ? `${user.first_name} ${user.last_name}`
           : `Utilisateur ${acc.userId}`,
         matricule: user?.matricule || "---",
-        role: isTrainer ? "Formateur" : "Participant",
+        planRole: isTrainer ? "Formateur" : "Participant",
       };
     });
   }, [currentAccommodations, allUsers, trainers]);
@@ -182,7 +183,7 @@ export const StepLogistics = () => {
           <div className="flex items-center gap-2">
             <Badge
               variant={
-                row.original.role === "Formateur" ? "outline" : "secondary"
+                row.original.planRole === "Formateur" ? "outline" : "secondary"
               }
               className="h-5 w-5 p-0 flex items-center justify-center rounded-full shrink-0"
             >
@@ -193,7 +194,7 @@ export const StepLogistics = () => {
                 {row.original.full_name}
               </span>
               <span className="text-[10px] text-muted-foreground uppercase font-black">
-                {row.original.role} • {row.original.matricule}
+                {row.original.planRole} • {row.original.matricule}
               </span>
             </div>
           </div>
@@ -273,6 +274,10 @@ export const StepLogistics = () => {
     ],
     [accommodationsList, handleUpdateEntry],
   );
+
+  if (accLoading || usersLoading) {
+    return <Skeleton className="h-[400px] w-full rounded-lg" />;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

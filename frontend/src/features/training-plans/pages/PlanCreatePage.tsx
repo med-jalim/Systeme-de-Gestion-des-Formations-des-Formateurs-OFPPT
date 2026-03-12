@@ -13,12 +13,12 @@ export const PlanCreatePage = () => {
 
   const { mutateAsync: submitPlan, isPending } = useMutation({
     mutationFn: createPlan,
-    onSuccess: () => {
+    onSuccess: (plan) => {
       // Invalidate the plans list cache
       queryClient.invalidateQueries({ queryKey: ["trainingPlans"] });
       toast.success("Plan de formation créé avec succès !");
-      // navigate to details or list
-      navigate("/plans");
+      // navigate to details
+      navigate(`/plans/${plan.id}`);
     },
     onError: (error: any) => {
       const msg =

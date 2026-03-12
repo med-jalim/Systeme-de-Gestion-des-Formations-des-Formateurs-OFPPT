@@ -61,12 +61,32 @@ class TrainingPlansController extends Controller
             }
         }
 
-        return response()->json($plan->load(['participants', 'trainers', 'themeAssignments', 'planAccommodations']), 201);
+        return response()->json($plan->load([
+            'formation.themes', 
+            'site.centre', 
+            'participants', 
+            'trainers', 
+            'themeAssignments.theme', 
+            'themeAssignments.participant.direction', 
+            'themeAssignments.trainer', 
+            'planAccommodations.accommodation',
+            'planAccommodations.user'
+        ]), 201);
     }
 
     public function show(TrainingPlan $plan)
     {
-        return response()->json($plan->load(['formation', 'site', 'participants', 'trainers', 'themeAssignments', 'planAccommodations']));
+        return response()->json($plan->load([
+            'formation.themes', 
+            'site.centre', 
+            'participants', 
+            'trainers', 
+            'themeAssignments.theme', 
+            'themeAssignments.participant.direction', 
+            'themeAssignments.trainer', 
+            'planAccommodations.accommodation',
+            'planAccommodations.user'
+        ]));
     }
 
     public function update(Request $request, TrainingPlan $plan)
@@ -119,7 +139,17 @@ class TrainingPlansController extends Controller
             }
         }
 
-        return response()->json($plan->load(['participants', 'trainers', 'themeAssignments', 'planAccommodations']));
+        return response()->json($plan->load([
+            'formation.themes', 
+            'site.centre', 
+            'participants', 
+            'trainers', 
+            'themeAssignments.theme', 
+            'themeAssignments.participant.direction', 
+            'themeAssignments.trainer', 
+            'planAccommodations.accommodation',
+            'planAccommodations.user'
+        ]));
     }
 
     public function destroy(TrainingPlan $plan)

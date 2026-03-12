@@ -23,9 +23,11 @@ export interface Site {
 export interface User {
   id: number;
   keycloak_id: string;
+  matricule?: string;
   first_name: string;
   last_name: string;
   email: string;
+  role: "admin" | "responsable_cdc" | "responsable_formation" | "responsable_dr" | "formateur_animateur" | "formateur_participant";
   centre_id: number;
   direction_id: number;
   centre?: Centre;
@@ -37,6 +39,8 @@ export interface Theme {
   formation_id: number;
   title: string;
   description: string;
+  start_date: string;
+  end_date: string;
 }
 
 export interface Formation {
@@ -78,6 +82,31 @@ export interface PlanAccommodation {
   user?: User;
 }
 
+export interface TrainingSession {
+  id: number;
+  training_plan_id: number;
+  theme_id: number;
+  trainer_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  type: "présentiel" | "à distance";
+  remote_link?: string;
+  theme?: Theme;
+  trainer?: User;
+}
+
+export interface Absence {
+  id: number;
+  training_session_id: number;
+  user_id: number;
+  status: "present" | "absent" | "late";
+  minutes_late: number;
+  is_justified: boolean;
+  justification_reason?: string;
+  participant?: User;
+}
+
 export interface TrainingPlan {
   id: number;
   formation_id: number;
@@ -90,13 +119,14 @@ export interface TrainingPlan {
   site?: Site;
   participants?: User[];
   trainers?: User[];
-  themeAssignments?: ThemeAssignment[];
-  planAccommodations?: PlanAccommodation[];
+  theme_assignments?: ThemeAssignment[];
+  plan_accommodations?: PlanAccommodation[];
+  training_sessions?: TrainingSession[];
   created_at?: string;
   updated_at?: string;
 }
 
-export type CreateTrainingPlanPayload = Omit<TrainingPlan, "id" | "created_at" | "updated_at" | "formation" | "site" | "participants" | "trainers" | "themeAssignments" | "planAccommodations"> & {
+export type CreateTrainingPlanPayload = Omit<TrainingPlan, "id" | "created_at" | "updated_at" | "formation" | "site" | "participants" | "trainers" | "theme_assignments" | "plan_accommodations" | "training_sessions"> & {
   participants: { userId: number }[];
   trainers: { userId: number }[];
   theme_assignments?: {

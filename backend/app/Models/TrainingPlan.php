@@ -60,4 +60,9 @@ class TrainingPlan extends Model
     {
         return $this->hasMany(PlanAccommodation::class, 'plan_formation_id');
     }
+
+    public function trainingSessions()
+    {
+        return $this->hasMany(TrainingSession::class, 'training_plan_id');
+    }
 }

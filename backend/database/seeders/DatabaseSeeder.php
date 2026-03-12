@@ -37,15 +37,22 @@ class DatabaseSeeder extends Seeder
             Accommodation::factory(2)->create(['site_id' => $site->id]);
         }
 
-        // 3. Create Users (Trainers and Participants)
+        // 3. Create Users (Administrators, Managers, Trainers, and Participants)
+        User::factory()->create(['role' => User::ROLE_ADMIN, 'email' => 'admin@ofppt.ma']);
+        User::factory()->create(['role' => User::ROLE_RESPONSABLE_CDC, 'email' => 'cdc@ofppt.ma']);
+        User::factory()->create(['role' => User::ROLE_RESPONSABLE_FORMATION, 'email' => 'formation@ofppt.ma']);
+        User::factory()->create(['role' => User::ROLE_RESPONSABLE_DR, 'email' => 'dr@ofppt.ma']);
+
         $trainers = User::factory(10)->create([
+            'role'         => User::ROLE_FORMATEUR_ANIMATEUR,
             'direction_id' => $directions->random()->id,
-            'centre_id' => $centres->random()->id,
+            'centre_id'    => $centres->random()->id,
         ]);
 
         $participants = User::factory(30)->create([
+            'role'         => User::ROLE_FORMATEUR_PARTICIPANT,
             'direction_id' => $directions->random()->id,
-            'centre_id' => $centres->random()->id,
+            'centre_id'    => $centres->random()->id,
         ]);
 
         // 4. Create Formations and Themes

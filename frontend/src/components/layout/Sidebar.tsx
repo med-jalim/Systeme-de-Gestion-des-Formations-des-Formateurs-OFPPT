@@ -4,17 +4,23 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
-  Building,
   GraduationCap,
   Settings,
+  MapPin,
+  Hotel,
+  Network,
+  Building2,
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Tableau de Bord", href: "/dashboard", icon: LayoutDashboard },
   { title: "Plans de Formation", href: "/plans", icon: CalendarDays },
   { title: "Formations & Thèmes", href: "/formations", icon: GraduationCap },
-  { title: "Hébergements", href: "/accommodations", icon: Building },
-  { title: "Utilisateurs (Admin)", href: "/users", icon: Users },
+  { title: "Directions", href: "/directions", icon: Network },
+  { title: "Centres", href: "/centres", icon: Building2 },
+  { title: "Sites", href: "/sites", icon: MapPin },
+  { title: "Hébergements", href: "/accommodations", icon: Hotel },
+  { title: "Utilisateurs", href: "/users", icon: Users },
 ];
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
