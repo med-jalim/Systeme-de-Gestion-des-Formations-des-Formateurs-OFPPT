@@ -13,7 +13,11 @@ import {
   Edit,
   Trash2,
   GraduationCap,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
+import { DocumentsPanel } from "@/features/documents/components/DocumentsPanel";
 import {
   Table,
   TableBody,
@@ -40,6 +44,7 @@ export const FormationDetailsPage = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
+  const [expandedThemeId, setExpandedThemeId] = useState<number | null>(null);
   const [editingTheme, setEditingTheme] = useState<{
     id?: number;
     title: string;
@@ -306,7 +311,8 @@ export const FormationDetailsPage = () => {
                   </TableRow>
                 ) : (
                   formation.themes?.map((theme) => (
-                    <TableRow key={theme.id}>
+                    <>
+                    <TableRow key={theme.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="font-bold text-sm w-[250px]">
                         <div className="flex flex-col">
                           <span>{theme.title}</span>
@@ -326,6 +332,27 @@ export const FormationDetailsPage = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 transition-colors ${
+                            expandedThemeId === theme.id
+                              ? "text-primary bg-primary/5"
+                              : "text-muted-foreground"
+                          }`}
+                          title="Documents du thème"
+                          onClick={() =>
+                            setExpandedThemeId(
+                              expandedThemeId === theme.id ? null : theme.id
+                            )
+                          }
+                        >
+                          {expandedThemeId === theme.id ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -352,12 +379,34 @@ export const FormationDetailsPage = () => {
                         </Button>
                       </TableCell>
                     </TableRow>
+                    {expandedThemeId === theme.id && (
+                      <TableRow key={`docs-${theme.id}`}>
+                        <TableCell colSpan={3} className="bg-muted/20 p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <FolderOpen className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                              Documents — {theme.title}
+                            </span>
+                          </div>
+                          <DocumentsPanel entityType="theme" entityId={theme.id} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </>
                   ))
                 )}
               </TableBody>
             </Table>
           </div>
         </div>
+      </div>
+
+      {/* Documents Section */}
+      <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
+        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
+          <FolderOpen className="h-4 w-4" /> Ressources &amp; Documents
+        </h3>
+        <DocumentsPanel entityType="formation" entityId={Number(id)} />
       </div>
 
       {/* Theme Dialog */}

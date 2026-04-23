@@ -1,4 +1,4 @@
-import { Menu, User, Bell, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, User, Bell, ChevronLeft, ChevronRight, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +11,10 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/providers/AuthProvider";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "@/lib/axios";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -18,6 +22,36 @@ interface NavbarProps {
 }
 
 export function Navbar({ onToggleSidebar, isCollapsed }: NavbarProps) {
+  const { user, logout } = useAuth();
+
+  // Fetch full user profile to get the dynamic avatar from DB/R2
+  const { data: dbProfile } = useQuery({
+    queryKey: ["userProfile"],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/profile");
+      return res.data;
+    },
+    // Only fetch if authenticated
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Helper to format role name nicely
+  const getRoleLabel = (role: string) => {
+    const roles: Record<string, string> = {
+      admin: "Administrateur",
+      responsable_cdc: "Responsable CDC",
+      responsable_formation: "Responsable de Formation",
+      responsable_dr: "Responsable DR",
+      formateur_animateur: "Formateur Animateur",
+      formateur_participant: "Formateur Participant",
+    };
+    return roles[role] || role;
+  };
+
+  const initials = user ? `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase() : "U";
+  const avatarUrl = dbProfile?.avatar?.url;
+
   return (
     <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-2">
@@ -80,9 +114,9 @@ export function Navbar({ onToggleSidebar, isCollapsed }: NavbarProps) {
               className="relative h-8 w-8 rounded-full ml-1"
             >
               <Avatar className="h-8 w-8 border">
-                <AvatarImage src="" alt="@ofppt_user" />
+                <AvatarImage src={avatarUrl || ""} alt="@ofppt_user" />
                 <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                  YN
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -90,25 +124,34 @@ export function Navbar({ onToggleSidebar, isCollapsed }: NavbarProps) {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal p-2">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  Youssef Naciri
+                <p className="text-sm font-medium leading-none truncate">
+                  {user?.fullName || "Utilisateur"}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  youssef.naciri@ofppt.ma
+                <p className="text-xs leading-none text-muted-foreground truncate" title={user?.email}>
+                  {user?.email}
                 </p>
                 <p className="text-[10px] mt-1 uppercase font-bold text-primary">
-                  Admin Central
+                  {user?.roles?.[0] ? getRoleLabel(user.roles[0]) : "Utilisateur Standard"}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-xs">
-              <User className="mr-2 h-3 w-3" />
-              <span>Profil</span>
+            <DropdownMenuItem className="text-xs cursor-pointer" asChild>
+              <Link to="/settings" className="flex items-center w-full">
+                <User className="mr-2 h-3 w-3" />
+                <span>Mon Profil</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs cursor-pointer" asChild>
+              <Link to="/settings" className="flex items-center w-full">
+                <Settings className="mr-2 h-3 w-3" />
+                <span>Paramètres</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-xs text-red-600 focus:text-red-600">
-              Déconnexion
+            <DropdownMenuItem onClick={logout} className="text-xs text-red-600 focus:text-red-700 cursor-pointer">
+              <LogOut className="mr-2 h-3 w-3" />
+              <span>Déconnexion</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

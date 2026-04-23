@@ -49,7 +49,7 @@ type AccFormData = {
   site_id: string;
 };
 
-const EMPTY_FORM: AccFormData = { name: "", type: "", address: "", site_id: "" };
+const EMPTY_FORM: AccFormData = { name: "", type: "", address: "", site_id: "none" };
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   hotel: { label: "Hôtel", color: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -80,7 +80,7 @@ export const AccommodationsPage = () => {
     mutationFn: (data: AccFormData) =>
       axiosInstance.post("/accommodations", {
         ...data,
-        site_id: data.site_id ? Number(data.site_id) : null,
+        site_id: data.site_id && data.site_id !== "none" ? Number(data.site_id) : null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accommodations"] });
@@ -94,7 +94,7 @@ export const AccommodationsPage = () => {
     mutationFn: ({ id, data }: { id: number; data: AccFormData }) =>
       axiosInstance.put(`/accommodations/${id}`, {
         ...data,
-        site_id: data.site_id ? Number(data.site_id) : null,
+        site_id: data.site_id && data.site_id !== "none" ? Number(data.site_id) : null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accommodations"] });
@@ -126,7 +126,7 @@ export const AccommodationsPage = () => {
       name: acc.name,
       type: acc.type,
       address: acc.address || "",
-      site_id: acc.site_id ? String(acc.site_id) : "",
+      site_id: acc.site_id ? String(acc.site_id) : "none",
     });
     setDialogOpen(true);
   };
@@ -338,7 +338,7 @@ export const AccommodationsPage = () => {
                   <SelectValue placeholder="Lié à un site..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun site</SelectItem>
+                  <SelectItem value="none">Aucun site</SelectItem>
                   {(sites as any[]).map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>
                       {s.name}

@@ -1,12 +1,10 @@
 import { useParams, Link, useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "@/lib/axios";
 import type { TrainingPlan } from "../../types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useState } from "react";
-import { fetchPlanById, updatePlan } from "../api";
+import { fetchPlanById, updatePlan, approvePlan } from "../api";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +32,10 @@ import {
   User as UserIcon,
   Hotel,
   Edit,
+  FolderOpen,
+  CheckCircle,
+  XCircle as XCircleIcon,
+  Clock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
@@ -42,6 +44,9 @@ import { SessionsTab } from "../components/SessionsTab";
 import { AbsenceTab } from "../components/AbsenceTab";
 import { AssignmentsDialog } from "../components/AssignmentsDialog";
 import { LogisticsDialog } from "../components/LogisticsDialog";
+import { DocumentsPanel } from "@/features/documents/components/DocumentsPanel";
+import { useAuth } from "@/providers/AuthProvider";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const PlanDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,6 +63,7 @@ export const PlanDetailsPage = () => {
     end_date: string;
   } | null>(null);
 
+  const { user, hasRole, isAdmin } = useAuth();
   const { data: plan, isLoading } = useQuery<TrainingPlan>({
     queryKey: ["plan", id],
     queryFn: () => fetchPlanById(Number(id)),
@@ -100,6 +106,31 @@ export const PlanDetailsPage = () => {
     },
   });
 
+  const approvalMutation = useMutation({
+    mutationFn: (data: { status: "approuve" | "rejete"; rejection_reason?: string }) =>
+      approvePlan(Number(id), data),
+    onSuccess: (updatedPlan) => {
+      queryClient.invalidateQueries({ queryKey: ["plan", id] });
+      toast.success(
+        updatedPlan.validation_status === "approuve"
+          ? "Plan approuvé avec succès."
+          : "Plan rejeté."
+      );
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Erreur lors de la validation.");
+    },
+  });
+
+  const canApprove =
+    plan?.validation_status === "en_attente" &&
+    (isAdmin() ||
+      (hasRole("responsable_dr") &&
+        plan?.site?.centre?.direction_id.toString() === user?.direction_id?.toString()));
+
+  const isOwner = user?.id === plan?.creator?.keycloak_id;
+  const canModify = isAdmin() || isOwner;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -124,14 +155,14 @@ export const PlanDetailsPage = () => {
     );
   }
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     draft: "bg-gray-100 text-gray-800",
     active: "bg-blue-100 text-blue-800",
     completed: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800",
   };
 
-  const statusLabels = {
+  const statusLabels: Record<string, string> = {
     draft: "Brouillon",
     active: "Actif",
     completed: "Terminé",
@@ -160,9 +191,9 @@ export const PlanDetailsPage = () => {
               </h1>
               <Badge
                 variant="secondary"
-                className={`uppercase text-[10px] font-bold ${statusColors[plan.status]}`}
+                className={`uppercase text-[10px] font-bold ${statusColors[plan.status as string] || statusColors.draft}`}
               >
-                {statusLabels[plan.status]}
+                {statusLabels[plan.status as string] || statusLabels.draft}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-4">
@@ -179,29 +210,89 @@ export const PlanDetailsPage = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="font-bold"
-            onClick={() => {
-              setEditingData({
-                title: plan.title || "",
-                site_id: plan.site_id,
-                status: plan.status,
-                start_date: plan.start_date.split("T")[0],
-                end_date: plan.end_date.split("T")[0],
-              });
-              setIsEditDialogOpen(true);
-            }}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Modifier Plan
-          </Button>
+          {canModify && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-bold border-primary/20 text-primary hover:bg-primary/5"
+              onClick={() => {
+                setEditingData({
+                  title: plan.title || "",
+                  site_id: plan.site_id,
+                  status: plan.status,
+                  start_date: plan.start_date.split("T")[0],
+                  end_date: plan.end_date.split("T")[0],
+                });
+                setIsEditDialogOpen(true);
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" /> Modifier Plan
+            </Button>
+          )}
         </div>
       </div>
 
+      {/* Approval Section */}
+      {canApprove && (
+        <Alert className="bg-amber-50 border-amber-200">
+          <Clock className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 font-bold">
+            Validation Requise
+          </AlertTitle>
+          <AlertDescription className="text-amber-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-2">
+            <span>
+              Ce plan de formation est en attente de validation régionale. En
+              tant que responsable, vous devez l'approuver ou le rejeter.
+            </span>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 font-bold"
+                onClick={() => approvalMutation.mutate({ status: "approuve" })}
+                disabled={approvalMutation.isPending}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" /> Approuver
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="font-bold"
+                onClick={() => {
+                  const reason = prompt("Raison du rejet :");
+                  if (reason !== null) {
+                    approvalMutation.mutate({
+                      status: "rejete",
+                      rejection_reason: reason,
+                    });
+                  }
+                }}
+                disabled={approvalMutation.isPending}
+              >
+                <XCircleIcon className="mr-2 h-4 w-4" /> Rejeter
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Rejection Review (for owner) */}
+      {plan.validation_status === "rejete" && (
+        <Alert variant="destructive" className="bg-red-50 border-red-200">
+          <XCircleIcon className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 font-bold tracking-tight uppercase text-xs">
+            Plan Rejeté
+          </AlertTitle>
+          <AlertDescription className="text-red-700 mt-1">
+            <span className="font-semibold underline decoration-red-300">Raison:</span>{" "}
+            {plan.rejection_reason || "Aucune raison fournie."}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Tabs Layout */}
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-4xl bg-white border border-muted shadow-sm h-12 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-5xl bg-white border border-muted shadow-sm h-12 p-1 rounded-xl">
           <TabsTrigger
             value="general"
             className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
@@ -212,13 +303,13 @@ export const PlanDetailsPage = () => {
             value="participants"
             className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
           >
-            Bénéficiaires & Formateurs
+            Bénéficiaires &amp; Formateurs
           </TabsTrigger>
           <TabsTrigger
             value="logistics"
             className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
           >
-            Logistique & Hébergement
+            Logistique &amp; Hébergement
           </TabsTrigger>
           <TabsTrigger
             value="sessions"
@@ -230,7 +321,13 @@ export const PlanDetailsPage = () => {
             value="absences"
             className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
           >
-            Feuille d'émargement
+            Feuille d&apos;émargement
+          </TabsTrigger>
+          <TabsTrigger
+            value="documents"
+            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
+          >
+            Documents
           </TabsTrigger>
         </TabsList>
 
@@ -248,6 +345,7 @@ export const PlanDetailsPage = () => {
             <ParticipantsTab
               plan={plan}
               onEditAssignments={() => setIsAssignmentsDialogOpen(true)}
+              canModify={canModify}
             />
           </TabsContent>
           <TabsContent
@@ -257,6 +355,7 @@ export const PlanDetailsPage = () => {
             <LogisticsTab
               plan={plan}
               onEditLogistics={() => setIsLogisticsDialogOpen(true)}
+              canModify={canModify}
             />
           </TabsContent>
           <TabsContent
@@ -270,6 +369,17 @@ export const PlanDetailsPage = () => {
             className="focus-visible:outline-none focus-visible:ring-0"
           >
             <AbsenceTab plan={plan} />
+          </TabsContent>
+          <TabsContent
+            value="documents"
+            className="focus-visible:outline-none focus-visible:ring-0"
+          >
+            <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
+                <FolderOpen className="h-4 w-4" /> Ressources &amp; Documents du Plan
+              </h3>
+              <DocumentsPanel entityType="plan" entityId={Number(id)} />
+            </div>
           </TabsContent>
         </div>
       </Tabs>
@@ -484,9 +594,11 @@ function GeneralTab({ plan }: { plan: TrainingPlan }) {
 function ParticipantsTab({
   plan,
   onEditAssignments,
+  canModify,
 }: {
   plan: TrainingPlan;
   onEditAssignments: () => void;
+  canModify: boolean;
 }) {
   const assignments = plan.theme_assignments || [];
 
@@ -556,15 +668,17 @@ function ParticipantsTab({
         <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
           Affectations par Thématique
         </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEditAssignments}
-          className="font-bold text-xs"
-        >
-          <Edit className="h-3.5 w-3.5 mr-2" />
-          Modifier les Affectations
-        </Button>
+        {canModify && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEditAssignments}
+            className="font-bold text-xs"
+          >
+            <Edit className="h-3.5 w-3.5 mr-2" />
+            Modifier les Affectations
+          </Button>
+        )}
       </div>
       <DataTable
         columns={columns}
@@ -579,9 +693,11 @@ function ParticipantsTab({
 function LogisticsTab({
   plan,
   onEditLogistics,
+  canModify,
 }: {
   plan: TrainingPlan;
   onEditLogistics: () => void;
+  canModify: boolean;
 }) {
   const accommodations = plan.plan_accommodations || [];
 
@@ -677,15 +793,17 @@ function LogisticsTab({
         <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
           Liste des Réservations
         </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEditLogistics}
-          className="font-bold text-xs"
-        >
-          <Edit className="h-3.5 w-3.5 mr-2" />
-          Modifier les Réservations
-        </Button>
+        {canModify && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEditLogistics}
+            className="font-bold text-xs"
+          >
+            <Edit className="h-3.5 w-3.5 mr-2" />
+            Modifier les Réservations
+          </Button>
+        )}
       </div>
       <DataTable
         columns={columns}

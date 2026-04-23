@@ -115,10 +115,16 @@ export interface TrainingPlan {
   status: "draft" | "active" | "completed" | "cancelled";
   start_date: string;
   end_date: string;
+  created_by?: number | null;
+  validation_status: "en_attente" | "approuve" | "rejete";
+  validated_by?: number | null;
+  rejection_reason?: string | null;
   formation?: Formation;
   site?: Site;
   participants?: User[];
   trainers?: User[];
+  creator?: User;
+  validator?: User;
   theme_assignments?: ThemeAssignment[];
   plan_accommodations?: PlanAccommodation[];
   training_sessions?: TrainingSession[];
@@ -126,7 +132,7 @@ export interface TrainingPlan {
   updated_at?: string;
 }
 
-export type CreateTrainingPlanPayload = Omit<TrainingPlan, "id" | "created_at" | "updated_at" | "formation" | "site" | "participants" | "trainers" | "theme_assignments" | "plan_accommodations" | "training_sessions"> & {
+export type CreateTrainingPlanPayload = Omit<TrainingPlan, "id" | "created_at" | "updated_at" | "formation" | "site" | "participants" | "trainers" | "theme_assignments" | "plan_accommodations" | "training_sessions" | "creator" | "validator" | "created_by" | "validation_status" | "validated_by" | "rejection_reason"> & {
   participants: { userId: number }[];
   trainers: { userId: number }[];
   theme_assignments?: {

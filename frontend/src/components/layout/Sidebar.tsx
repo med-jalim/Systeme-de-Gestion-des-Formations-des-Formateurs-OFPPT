@@ -1,5 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/AuthProvider";
+import type { AppRole } from "@/providers/AuthProvider";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -12,15 +14,22 @@ import {
   Building2,
 } from "lucide-react";
 
-const sidebarNavItems = [
+type NavItem = {
+  title: string;
+  href: string;
+  icon: React.ElementType;
+  roles?: AppRole[]; // If missing, visible to all authenticated users. If empty `[]`, only meant for Admin.
+};
+
+const SIDEBAR_ITEMS: NavItem[] = [
   { title: "Tableau de Bord", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Plans de Formation", href: "/plans", icon: CalendarDays },
+  { title: "Plans de Formation", href: "/plans", icon: CalendarDays, roles: ["responsable_dr", "responsable_cdc", "responsable_formation"] },
   { title: "Formations & Thèmes", href: "/formations", icon: GraduationCap },
-  { title: "Directions", href: "/directions", icon: Network },
-  { title: "Centres", href: "/centres", icon: Building2 },
-  { title: "Sites", href: "/sites", icon: MapPin },
-  { title: "Hébergements", href: "/accommodations", icon: Hotel },
-  { title: "Utilisateurs", href: "/users", icon: Users },
+  { title: "Directions", href: "/directions", icon: Network, roles: [] },
+  { title: "Centres", href: "/centres", icon: Building2, roles: ["responsable_dr"] },
+  { title: "Sites", href: "/sites", icon: MapPin, roles: ["responsable_dr"] },
+  { title: "Hébergements", href: "/accommodations", icon: Hotel, roles: ["responsable_dr"] },
+  { title: "Utilisateurs", href: "/users", icon: Users, roles: [] },
 ];
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
@@ -28,6 +37,15 @@ interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 export function Sidebar({ className, isCollapsed, ...props }: SidebarProps) {
+  const { hasRole, isAdmin } = useAuth();
+
+  const filteredNavItems = SIDEBAR_ITEMS.filter((item) => {
+    if (isAdmin()) return true;
+    if (!item.roles) return true; // Accessible to everyone
+    if (item.roles.length === 0) return false; // Requires roles, but none specified (only Admin)
+    return hasRole(item.roles);
+  });
+
   return (
     <nav
       className={cn(
@@ -66,8 +84,8 @@ export function Sidebar({ className, isCollapsed, ...props }: SidebarProps) {
         </div>
       </div>
 
-      <div className="space-y-1 flex-1 overflow-y-auto w-full">
-        {sidebarNavItems.map((item) => (
+      <div className="space-y-1 flex-1 overflow-y-auto w-full pr-1 custom-scrollbar">
+        {filteredNavItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}

@@ -12,6 +12,8 @@ use App\Http\Controllers\API\TrainingSessionsController;
 use App\Http\Controllers\API\AbsencesController;
 use App\Http\Controllers\API\CentresController;
 use App\Http\Controllers\API\DirectionsController;
+use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\FilesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,9 +26,15 @@ use App\Http\Controllers\API\DirectionsController;
 |
 */
 
-// TODO: Replace with custom Keycloak middleware once Keycloak is integrated
-// Route::middleware('auth:api')->group(function () {
-    
+Route::middleware('keycloak.auth')->group(function () {
+
+    // Profile
+    Route::get('profile', [\App\Http\Controllers\API\ProfileController::class, 'show']);
+    Route::put('profile', [\App\Http\Controllers\API\ProfileController::class, 'update']);
+
+    // Dashboard
+    Route::get('dashboard', [DashboardController::class, 'index']);
+
     // Formations
     Route::apiResource('formations', FormationsController::class);
     
@@ -49,6 +57,7 @@ use App\Http\Controllers\API\DirectionsController;
     Route::apiResource('centres', CentresController::class);
     
     // Training Plans
+    Route::post('plans/{plan}/approve', [TrainingPlansController::class, 'approve']);
     Route::apiResource('plans', TrainingPlansController::class);
     
     // Plan Assignments
@@ -61,5 +70,11 @@ use App\Http\Controllers\API\DirectionsController;
     // Absences
     Route::get('absences', [AbsencesController::class, 'index']);
     Route::post('absences/batch', [AbsencesController::class, 'batchUpdate']);
-    
-// });
+
+    // Files (Cloudflare R2)
+    Route::get('files', [FilesController::class, 'index']);
+    Route::post('files', [FilesController::class, 'store']);
+    Route::get('files/{file}/download', [FilesController::class, 'download']);
+    Route::delete('files/{file}', [FilesController::class, 'destroy']);
+
+});

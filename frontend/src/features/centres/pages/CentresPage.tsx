@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/table";
 import { Building2, Plus, Edit, Trash2, Search } from "lucide-react";
 
+import { useAuth } from "@/providers/AuthProvider";
+
 interface Direction {
   id: number;
   code: string;
@@ -59,6 +61,7 @@ type FormData = { code: string; name: string; direction_id: string };
 const EMPTY: FormData = { code: "", name: "", direction_id: "" };
 
 export const CentresPage = () => {
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dirFilter, setDirFilter] = useState<string>("all");
@@ -213,19 +216,21 @@ export const CentresPage = () => {
               className="pl-9"
             />
           </div>
-          <Select value={dirFilter} onValueChange={setDirFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filtrer par direction..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes les directions</SelectItem>
-              {(directions as Direction[]).map((d) => (
-                <SelectItem key={d.id} value={String(d.id)}>
-                  {d.code} – {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isAdmin() && (
+            <Select value={dirFilter} onValueChange={setDirFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filtrer par direction..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les directions</SelectItem>
+                {(directions as Direction[]).map((d) => (
+                  <SelectItem key={d.id} value={String(d.id)}>
+                    {d.code} – {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <span className="text-xs text-muted-foreground font-medium shrink-0">
             {filtered.length} résultat(s)
           </span>
@@ -338,25 +343,27 @@ export const CentresPage = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label htmlFor="ctr-direction">Direction *</Label>
-              <Select
-                value={form.direction_id}
-                onValueChange={(v) => setForm({ ...form, direction_id: v })}
-                required
-              >
-                <SelectTrigger id="ctr-direction">
-                  <SelectValue placeholder="Sélectionner une direction..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(directions as Direction[]).map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {d.code} – {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {isAdmin() && (
+              <div className="space-y-2">
+                <Label htmlFor="ctr-direction">Direction *</Label>
+                <Select
+                  value={form.direction_id}
+                  onValueChange={(v) => setForm({ ...form, direction_id: v })}
+                  required
+                >
+                  <SelectTrigger id="ctr-direction">
+                    <SelectValue placeholder="Sélectionner une direction..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(directions as Direction[]).map((d) => (
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.code} – {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="ctr-code">Code *</Label>
               <Input
@@ -384,7 +391,7 @@ export const CentresPage = () => {
               <Button
                 type="submit"
                 disabled={
-                  isPending || !form.code || !form.name || !form.direction_id
+                  isPending || !form.code || !form.name || (isAdmin() && !form.direction_id)
                 }
               >
                 {isPending

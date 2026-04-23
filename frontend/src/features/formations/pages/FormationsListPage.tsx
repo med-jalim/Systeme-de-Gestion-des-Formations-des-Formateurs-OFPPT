@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/providers/AuthProvider";
 
 export const FormationsListPage = () => {
   const { formations, loading, removeFormation } = useFormations();
   const navigate = useNavigate();
+  const { hasRole, isAdmin } = useAuth();
+
+  const canEdit = isAdmin() || hasRole(["responsable_cdc", "responsable_formation"]);
 
   const handleDelete = async (id: number) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cette formation ?")) {
@@ -38,13 +42,16 @@ export const FormationsListPage = () => {
             </p>
           </div>
         </div>
-        <Button
-          onClick={() => navigate("/formations/new")}
-          className="font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nouveau Programme
-        </Button>
+        
+        {canEdit && (
+          <Button
+            onClick={() => navigate("/formations/new")}
+            className="font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nouveau Programme
+          </Button>
+        )}
       </div>
 
       {loading && formations.length === 0 ? (
@@ -63,6 +70,7 @@ export const FormationsListPage = () => {
             navigate(`/formations/${formation.id}`, { state: { edit: true } })
           }
           onView={(formation) => navigate(`/formations/${formation.id}`)}
+          canEdit={canEdit}
         />
       )}
     </div>

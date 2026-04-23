@@ -10,11 +10,27 @@ class TrainingPlansController extends Controller
 {
     public function index()
     {
-        return response()->json(TrainingPlan::with(['formation', 'site', 'participants', 'trainers'])->get());
+        $query = TrainingPlan::with(['formation', 'site', 'participants', 'trainers', 'creator', 'validator']);
+
+        $authUser = request()->attributes->get('auth_user');
+        if ($authUser) {
+            if ($authUser->role === 'responsable_dr') {
+                $query->where(function ($q) use ($authUser) {
+                    $q->whereHas('site.centre', fn($c) => $c->where('direction_id', $authUser->direction_id))
+                      ->orWhere('created_by', $authUser->id);
+                });
+            } elseif ($authUser->role === 'responsable_cdc') {
+                $query->whereHas('site', fn($q) => $q->where('centre_id', $authUser->centre_id));
+            }
+        }
+
+        return response()->json($query->get());
     }
 
     public function store(Request $request)
     {
+        $this->authorizePlanEdit();
+
         $validated = $request->validate([
             'formation_id' => 'required|exists:formations,id',
             'site_id'      => 'required|exists:sites,id',
@@ -36,6 +52,10 @@ class TrainingPlansController extends Controller
             'plan_accommodations.*.check_in_date'  => 'nullable|date',
             'plan_accommodations.*.check_out_date' => 'nullable|date',
         ]);
+
+        $authUser = request()->attributes->get('auth_user');
+        $validated['created_by'] = $authUser ? $authUser->id : null;
+        $validated['validation_status'] = 'en_attente';
 
         $plan = TrainingPlan::create($validated);
 
@@ -81,6 +101,8 @@ class TrainingPlansController extends Controller
             'site.centre', 
             'participants', 
             'trainers', 
+            'creator',
+            'validator',
             'themeAssignments.theme', 
             'themeAssignments.participant.direction', 
             'themeAssignments.trainer', 
@@ -91,6 +113,8 @@ class TrainingPlansController extends Controller
 
     public function update(Request $request, TrainingPlan $plan)
     {
+        $this->authorizePlanEdit($plan);
+
         $validated = $request->validate([
             'formation_id' => 'sometimes|required|exists:formations,id',
             'site_id'      => 'sometimes|required|exists:sites,id',
@@ -144,6 +168,8 @@ class TrainingPlansController extends Controller
             'site.centre', 
             'participants', 
             'trainers', 
+            'creator',
+            'validator',
             'themeAssignments.theme', 
             'themeAssignments.participant.direction', 
             'themeAssignments.trainer', 
@@ -154,7 +180,47 @@ class TrainingPlansController extends Controller
 
     public function destroy(TrainingPlan $plan)
     {
+        $this->authorizePlanEdit($plan);
         $plan->delete();
         return response()->noContent();
+    }
+
+    public function approve(Request $request, TrainingPlan $plan)
+    {
+        $user = request()->attributes->get('auth_user');
+        
+        $plan->load('site.centre');
+        $isDrOfRegion = $user && $user->role === 'responsable_dr' && $plan->site && $plan->site->centre && $plan->site->centre->direction_id === $user->direction_id;
+        
+        if (!$user || ($user->role !== 'admin' && !$isDrOfRegion)) {
+            abort(403, 'Seul l\'administrateur ou le DR de la région cible peut approuver ce plan.');
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:approuve,rejete',
+            'rejection_reason' => 'nullable|string'
+        ]);
+
+        $plan->update([
+            'validation_status' => $validated['status'],
+            'validated_by'      => $user->id,
+            'rejection_reason'  => $validated['rejection_reason']
+        ]);
+
+        return response()->json($plan->load(['creator', 'validator']));
+    }
+
+    private function authorizePlanEdit(TrainingPlan $plan = null): void
+    {
+        $user = request()->attributes->get('auth_user');
+        if (!$user) return;
+
+        if ($user->role === 'responsable_cdc') {
+            abort(403, 'Le responsable de centre n\'est pas autorisé à modifier les plans de formation.');
+        }
+
+        if ($plan && $user->role !== 'admin' && $plan->created_by !== $user->id) {
+            abort(403, 'Vous ne pouvez modifier que les plans que vous avez créés.');
+        }
     }
 }

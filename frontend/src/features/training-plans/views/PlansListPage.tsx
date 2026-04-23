@@ -4,10 +4,12 @@ import { PlansTable } from "../components/PlansTable";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle } from "lucide-react";
+import { useAuth } from "@/providers/AuthProvider";
 
 export const PlansListPage = () => {
   const { plans, loading, removePlan } = useTrainingPlans();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
 
   const handleDelete = async (id: number) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce plan ?")) {
@@ -18,6 +20,8 @@ export const PlansListPage = () => {
       }
     }
   };
+
+  const canCreate = !hasRole("responsable_cdc");
 
   return (
     <div className="p-6 space-y-6">
@@ -31,10 +35,12 @@ export const PlansListPage = () => {
             participants et la logistique.
           </p>
         </div>
-        <Button onClick={() => navigate("/plans/new")}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nouveau Plan
-        </Button>
+        {canCreate && (
+          <Button onClick={() => navigate("/plans/new")}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nouveau Plan
+          </Button>
+        )}
       </div>
 
       {loading && plans.length === 0 ? (

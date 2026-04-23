@@ -89,4 +89,11 @@ class User extends Authenticatable
         return $this->belongsToMany(TrainingPlan::class, 'plan_formateurs', 'utilisateur_id', 'plan_formation_id')
                     ->withTimestamps();
     }
+
+    public function avatar()
+    {
+        return $this->hasOne(File::class, 'entity_id')
+                    ->where('entity_type', 'user')
+                    ->latestOfMany();
+    }
 }

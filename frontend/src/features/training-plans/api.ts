@@ -27,6 +27,11 @@ export const deletePlan = async (id: number): Promise<void> => {
   await axiosInstance.delete(`${API_BASE}/${id}`);
 };
 
+export const approvePlan = async (id: number, data: { status: 'approuve' | 'rejete', rejection_reason?: string }): Promise<TrainingPlan> => {
+  const response = await axiosInstance.post(`${API_BASE}/${id}/approve`, data);
+  return response.data;
+};
+
 export const fetchSessions = async (planId: number): Promise<TrainingSession[]> => {
   const response = await axiosInstance.get(`/sessions?plan_id=${planId}`);
   return response.data;

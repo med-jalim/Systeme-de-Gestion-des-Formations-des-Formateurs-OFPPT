@@ -18,6 +18,10 @@ class TrainingPlan extends Model
         'status',
         'start_date',
         'end_date',
+        'created_by',
+        'validation_status',
+        'validated_by',
+        'rejection_reason',
     ];
 
     protected function casts(): array
@@ -64,5 +68,15 @@ class TrainingPlan extends Model
     public function trainingSessions()
     {
         return $this->hasMany(TrainingSession::class, 'training_plan_id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function validator()
+    {
+        return $this->belongsTo(User::class, 'validated_by');
     }
 }

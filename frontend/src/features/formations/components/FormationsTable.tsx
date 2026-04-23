@@ -16,6 +16,7 @@ interface FormationsTableProps {
   onEdit: (formation: Formation) => void;
   onDelete: (id: number) => void;
   onView: (formation: Formation) => void;
+  canEdit?: boolean;
 }
 
 export const FormationsTable = ({
@@ -23,6 +24,7 @@ export const FormationsTable = ({
   onEdit,
   onDelete,
   onView,
+  canEdit = true,
 }: FormationsTableProps) => {
   return (
     <div className="rounded-md border bg-white shadow-sm overflow-hidden">
@@ -73,24 +75,29 @@ export const FormationsTable = ({
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(formation)}
-                    title="Modifier"
-                    className="hover:bg-blue-50 hover:text-blue-600 rounded-full h-8 w-8 text-blue-500"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(formation.id)}
-                    title="Supprimer"
-                    className="hover:bg-red-50 hover:text-red-600 rounded-full h-8 w-8 text-red-500"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  
+                  {canEdit && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(formation)}
+                        title="Modifier"
+                        className="hover:bg-blue-50 hover:text-blue-600 rounded-full h-8 w-8 text-blue-500"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(formation.id)}
+                        title="Supprimer"
+                        className="hover:bg-red-50 hover:text-red-600 rounded-full h-8 w-8 text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))

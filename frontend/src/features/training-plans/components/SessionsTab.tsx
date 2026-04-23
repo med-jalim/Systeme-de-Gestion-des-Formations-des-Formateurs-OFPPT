@@ -41,13 +41,22 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/providers/AuthProvider";
+
 interface SessionsTabProps {
   plan: TrainingPlan;
 }
 
 export function SessionsTab({ plan }: SessionsTabProps) {
   const queryClient = useQueryClient();
+  const { user, hasRole, isAdmin } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  // Logic to determine if user can manage sessions
+  // Responsable CDC is read-only. Others can manage if they are admin or they created the plan.
+  const isOwner = user?.id === plan.creator?.keycloak_id;
+  const canManage = (isAdmin() || isOwner) && !hasRole("responsable_cdc");
+
   const [newSession, setNewSession] = useState<Partial<TrainingSession>>({
     training_plan_id: plan.id,
     type: "présentiel",
@@ -107,181 +116,183 @@ export function SessionsTab({ plan }: SessionsTabProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-bold">Calendrier des Sessions</h3>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" /> Programmer une session
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Programmer une nouvelle session</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>Thématique</Label>
-                <Select
-                  value={newSession.theme_id?.toString()}
-                  onValueChange={(val) =>
-                    setNewSession({
-                      ...newSession,
-                      theme_id: parseInt(val),
-                      trainer_id: undefined,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir un thème" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plan.formation?.themes?.map((t) => (
-                      <SelectItem key={t.id} value={t.id.toString()}>
-                        {t.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Formateur</Label>
-                <Select
-                  value={newSession.trainer_id?.toString()}
-                  onValueChange={(val) =>
-                    setNewSession({ ...newSession, trainer_id: parseInt(val) })
-                  }
-                  disabled={!newSession.theme_id}
-                >
-                  <SelectTrigger
-                    className={
-                      !newSession.theme_id
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }
-                  >
-                    <SelectValue
-                      placeholder={
-                        newSession.theme_id
-                          ? "Choisir un formateur"
-                          : "Sélectionnez d'abord un thème"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plan.theme_assignments
-                      ?.filter((a) => a.theme_id === newSession.theme_id)
-                      .map((a) => a.trainer)
-                      .filter(
-                        (t, index, self) =>
-                          t && self.findIndex((s) => s?.id === t.id) === index,
-                      )
-                      .map((t) => (
-                        <SelectItem key={t!.id} value={t!.id.toString()}>
-                          {t!.first_name} {t!.last_name}
-                        </SelectItem>
-                      ))}
-                    {plan.theme_assignments?.filter(
-                      (a) => a.theme_id === newSession.theme_id,
-                    ).length === 0 && (
-                      <div className="py-2 px-4 text-xs italic text-muted-foreground">
-                        Aucun formateur assigné à ce thème
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+        {canManage && (
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2">
+                <Plus className="h-4 w-4" /> Programmer une session
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Programmer une nouvelle session</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label>Date</Label>
-                  <Input
-                    type="date"
-                    value={newSession.date}
-                    onChange={(e) =>
-                      setNewSession({ ...newSession, date: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Type</Label>
+                  <Label>Thématique</Label>
                   <Select
-                    value={newSession.type}
-                    onValueChange={(val: any) =>
-                      setNewSession({ ...newSession, type: val })
+                    value={newSession.theme_id?.toString()}
+                    onValueChange={(val) =>
+                      setNewSession({
+                        ...newSession,
+                        theme_id: parseInt(val),
+                        trainer_id: undefined,
+                      })
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Choisir un thème" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="présentiel">Présentiel</SelectItem>
-                      <SelectItem value="à distance">À distance</SelectItem>
+                      {plan.formation?.themes?.map((t) => (
+                        <SelectItem key={t.id} value={t.id.toString()}>
+                          {t.title}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Début</Label>
-                  <Input
-                    type="time"
-                    value={newSession.start_time}
-                    onChange={(e) =>
-                      setNewSession({
-                        ...newSession,
-                        start_time: e.target.value,
-                      })
+                  <Label>Formateur</Label>
+                  <Select
+                    value={newSession.trainer_id?.toString()}
+                    onValueChange={(val) =>
+                      setNewSession({ ...newSession, trainer_id: parseInt(val) })
                     }
-                  />
+                    disabled={!newSession.theme_id}
+                  >
+                    <SelectTrigger
+                      className={
+                        !newSession.theme_id
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }
+                    >
+                      <SelectValue
+                        placeholder={
+                          newSession.theme_id
+                            ? "Choisir un formateur"
+                            : "Sélectionnez d'abord un thème"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plan.theme_assignments
+                        ?.filter((a) => a.theme_id === newSession.theme_id)
+                        .map((a) => a.trainer)
+                        .filter(
+                          (t, index, self) =>
+                            t && self.findIndex((s) => s?.id === t.id) === index,
+                        )
+                        .map((t) => (
+                          <SelectItem key={t!.id} value={t!.id.toString()}>
+                            {t!.first_name} {t!.last_name}
+                          </SelectItem>
+                        ))}
+                      {plan.theme_assignments?.filter(
+                        (a) => a.theme_id === newSession.theme_id,
+                      ).length === 0 && (
+                        <div className="py-2 px-4 text-xs italic text-muted-foreground">
+                          Aucun formateur assigné à ce thème
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Fin</Label>
-                  <Input
-                    type="time"
-                    value={newSession.end_time}
-                    onChange={(e) =>
-                      setNewSession({ ...newSession, end_time: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
 
-              {newSession.type === "à distance" && (
-                <div className="grid gap-2">
-                  <Label>Lien de la réunion</Label>
-                  <Input
-                    placeholder="https://teams.microsoft.com/..."
-                    value={newSession.remote_link || ""}
-                    onChange={(e) =>
-                      setNewSession({
-                        ...newSession,
-                        remote_link: e.target.value,
-                      })
-                    }
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={newSession.date}
+                      onChange={(e) =>
+                        setNewSession({ ...newSession, date: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Type</Label>
+                    <Select
+                      value={newSession.type}
+                      onValueChange={(val: any) =>
+                        setNewSession({ ...newSession, type: val })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="présentiel">Présentiel</SelectItem>
+                        <SelectItem value="à distance">À distance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsAddDialogOpen(false)}
-              >
-                Annuler
-              </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={createMutation.isPending}
-              >
-                {createMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Début</Label>
+                    <Input
+                      type="time"
+                      value={newSession.start_time}
+                      onChange={(e) =>
+                        setNewSession({
+                          ...newSession,
+                          start_time: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Fin</Label>
+                    <Input
+                      type="time"
+                      value={newSession.end_time}
+                      onChange={(e) =>
+                        setNewSession({ ...newSession, end_time: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {newSession.type === "à distance" && (
+                  <div className="grid gap-2">
+                    <Label>Lien de la réunion</Label>
+                    <Input
+                      placeholder="https://teams.microsoft.com/..."
+                      value={newSession.remote_link || ""}
+                      onChange={(e) =>
+                        setNewSession({
+                          ...newSession,
+                          remote_link: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 )}
-                Confirmer
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddDialogOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={createMutation.isPending}
+                >
+                  {createMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Confirmer
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-muted shadow-sm overflow-hidden">
@@ -363,18 +374,20 @@ export function SessionsTab({ plan }: SessionsTabProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => {
-                        if (confirm("Supprimer cette session ?")) {
-                          deleteMutation.mutate(session.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          if (confirm("Supprimer cette session ?")) {
+                            deleteMutation.mutate(session.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
