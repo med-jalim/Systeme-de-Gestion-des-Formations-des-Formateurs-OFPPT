@@ -22,7 +22,6 @@ export interface Site {
 
 export interface User {
   id: number;
-  keycloak_id: string;
   matricule?: string;
   first_name: string;
   last_name: string;
@@ -112,11 +111,10 @@ export interface TrainingPlan {
   formation_id: number;
   site_id: number;
   title: string;
-  status: "draft" | "active" | "completed" | "cancelled";
+  status: "draft" | "en_attente" | "approuve" | "rejete" | "completed" | "cancelled";
   start_date: string;
   end_date: string;
   created_by?: number | null;
-  validation_status: "en_attente" | "approuve" | "rejete";
   validated_by?: number | null;
   rejection_reason?: string | null;
   formation?: Formation;
@@ -132,7 +130,7 @@ export interface TrainingPlan {
   updated_at?: string;
 }
 
-export type CreateTrainingPlanPayload = Omit<TrainingPlan, "id" | "created_at" | "updated_at" | "formation" | "site" | "participants" | "trainers" | "theme_assignments" | "plan_accommodations" | "training_sessions" | "creator" | "validator" | "created_by" | "validation_status" | "validated_by" | "rejection_reason"> & {
+export type CreateTrainingPlanPayload = Omit<TrainingPlan, "id" | "created_at" | "updated_at" | "formation" | "site" | "participants" | "trainers" | "theme_assignments" | "plan_accommodations" | "training_sessions" | "creator" | "validator" | "created_by" | "validated_by" | "rejection_reason"> & {
   participants: { userId: number }[];
   trainers: { userId: number }[];
   theme_assignments?: {

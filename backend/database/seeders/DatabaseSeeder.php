@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create(['role' => User::ROLE_RESPONSABLE_DR, 'email' => 'dr@ofppt.ma']);
 
         $trainers = User::factory(10)->create([
-            'role'         => User::ROLE_FORMATEUR_ANIMATEUR,
+            'role'         => User::ROLE_FORMATEUR_ANIMATEUR, 
             'direction_id' => $directions->random()->id,
             'centre_id'    => $centres->random()->id,
         ]);

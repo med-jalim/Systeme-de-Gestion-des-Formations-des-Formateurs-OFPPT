@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 
 class AccommodationsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $query = Accommodation::with('site');
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         
         // Only CDC is restricted to their own centre's accommodations in the list
-        if ($user && $user->role === 'responsable_cdc') {
+        if ($user && $user->role === 'responsable_cdc' && !$request->has('all')) {
             $query->whereHas('site', fn($q) => $q->where('centre_id', $user->centre_id));
         }
 
@@ -77,7 +77,7 @@ class AccommodationsController extends Controller
 
     private function authorizeLocationAccess(Accommodation $accommodation = null, $siteId = null): void
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         if (!$user) return;
 
         if ($accommodation) {

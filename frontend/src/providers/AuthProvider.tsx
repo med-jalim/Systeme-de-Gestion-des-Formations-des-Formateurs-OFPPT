@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import keycloak from "@/lib/keycloak";
+import axiosInstance from "@/lib/axios";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,12 +13,12 @@ export type AppRole =
   | "formateur_participant";
 
 interface AuthUser {
-  id: string;
+  id: number;
   email: string;
   firstName: string;
   lastName: string;
   fullName: string;
-  roles: string[];
+  role: AppRole;
 }
 
 interface AuthContextType {
@@ -26,33 +26,10 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  login: (token: string, user: any) => void;
+  logout: () => void;
   hasRole: (role: AppRole | AppRole[]) => boolean;
   isAdmin: () => boolean;
-  logout: () => void;
-}
-
-// ─── Singleton init — runs ONCE outside React, immune to StrictMode ───────────
-
-const APP_ROLES: AppRole[] = [
-  "admin",
-  "responsable_cdc",
-  "responsable_formation",
-  "responsable_dr",
-  "formateur_animateur",
-  "formateur_participant",
-];
-
-let _initPromise: Promise<boolean> | null = null;
-
-function getInitPromise(): Promise<boolean> {
-  if (!_initPromise) {
-    _initPromise = keycloak.init({
-      onLoad: "login-required",
-      checkLoginIframe: false,
-      pkceMethod: "S256",
-    });
-  }
-  return _initPromise;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -62,9 +39,10 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   isAuthenticated: false,
   isLoading: true,
+  login: () => {},
+  logout: () => {},
   hasRole: () => false,
   isAdmin: () => false,
-  logout: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -75,63 +53,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const refreshInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const mapUser = (laravelUser: any): AuthUser => ({
+    id: laravelUser.id,
+    email: laravelUser.email,
+    firstName: laravelUser.first_name,
+    lastName: laravelUser.last_name,
+    fullName: `${laravelUser.first_name} ${laravelUser.last_name}`.trim(),
+    role: laravelUser.role as AppRole,
+  });
 
   useEffect(() => {
-    getInitPromise()
-      .then((authenticated) => {
-        if (authenticated && keycloak.tokenParsed) {
-          const profile = keycloak.tokenParsed;
-          const realmRoles: AppRole[] = (
-            profile.realm_access?.roles ?? []
-          ).filter((r: string): r is AppRole =>
-            APP_ROLES.includes(r as AppRole),
-          );
-          console.log(profile);
+    const storedToken = localStorage.getItem("auth_token");
+    const storedUser = localStorage.getItem("auth_user");
 
-          setUser({
-            id: profile.sub!,
-            email: profile.email ?? "",
-            firstName: profile.given_name ?? "",
-            lastName: profile.family_name ?? "",
-            fullName:
-              `${profile.given_name ?? ""} ${profile.family_name ?? ""}`.trim() ||
-              (profile.preferred_username ?? ""),
-            roles: realmRoles,
-          });
-          setToken(keycloak.token!);
-
-          // Auto-refresh token 60s before expiry
-          refreshInterval.current = setInterval(() => {
-            keycloak.updateToken(60).catch(() => keycloak.logout());
-          }, 30_000);
-        } else {
-          // Not authenticated — keycloak will redirect automatically
-          keycloak.login();
-        }
-      })
-      .catch((err) => {
-        console.error("Keycloak init error:", err);
-      })
-      .finally(() => setIsLoading(false));
-
-    // Keep token state in sync after silent refresh
-    keycloak.onAuthRefreshSuccess = () => {
-      setToken(keycloak.token ?? null);
-    };
-
-    return () => {
-      if (refreshInterval.current) clearInterval(refreshInterval.current);
-    };
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      setIsLoading(false);
+    } else {
+      setIsLoading(false);
+    }
   }, []);
+
+  const login = (newToken: string, laravelUser: any) => {
+    const mappedUser = mapUser(laravelUser);
+    setToken(newToken);
+    setUser(mappedUser);
+    localStorage.setItem("auth_token", newToken);
+    localStorage.setItem("auth_user", JSON.stringify(mappedUser));
+  };
+
+  const logout = async () => {
+    try {
+      await axiosInstance.post("/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      window.location.href = "/login";
+    }
+  };
 
   const hasRole = (role: AppRole | AppRole[]): boolean => {
     if (!user) return false;
-    if (Array.isArray(role)) return role.some((r) => user.roles.includes(r));
-    return user.roles.includes(role);
+    if (Array.isArray(role)) return role.includes(user.role);
+    return user.role === role;
   };
-
-  const logout = () => keycloak.logout({ redirectUri: window.location.origin });
 
   return (
     <AuthContext.Provider
@@ -140,9 +111,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         isAuthenticated: !!user,
         isLoading,
+        login,
+        logout,
         hasRole,
         isAdmin: () => hasRole("admin"),
-        logout,
       }}
     >
       {children}

@@ -67,7 +67,7 @@ export const StepParticipants = () => {
   const { data: allUsers, isLoading: usersLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const response = await axiosInstance.get("/users");
+      const response = await axiosInstance.get("/users?all=true");
       return response.data;
     },
   });
@@ -614,7 +614,7 @@ export const StepParticipants = () => {
             {assignedTableSelection.length > 0 && (
               <div className="flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
                 <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
-                  Coiffure ({assignedTableSelection.length}) :
+                  Sélection ({assignedTableSelection.length}) :
                 </span>
                 <BatchParticipantAssignor
                   themes={availableThemes}

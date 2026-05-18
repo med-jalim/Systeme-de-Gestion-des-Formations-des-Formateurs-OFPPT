@@ -11,7 +11,7 @@ class Formation extends Model
 
     protected $table = 'formations';
 
-    protected $fillable = ['title', 'description', 'start_date', 'end_date'];
+    protected $fillable = ['title', 'description', 'start_date', 'end_date', 'created_by'];
 
     protected function casts(): array
     {

@@ -14,16 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   Calendar,
@@ -36,17 +27,25 @@ import {
   CheckCircle,
   XCircle as XCircleIcon,
   Clock,
+  ChevronRight,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DataTable } from "@/components/ui/data-table";
-import type { ColumnDef } from "@tanstack/react-table";
 import { SessionsTab } from "../components/SessionsTab";
 import { AbsenceTab } from "../components/AbsenceTab";
 import { AssignmentsDialog } from "../components/AssignmentsDialog";
 import { LogisticsDialog } from "../components/LogisticsDialog";
 import { DocumentsPanel } from "@/features/documents/components/DocumentsPanel";
 import { useAuth } from "@/providers/AuthProvider";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export const PlanDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -97,12 +96,10 @@ export const PlanDetailsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plan", id] });
       setIsEditDialogOpen(false);
-      toast.success("Plan de formation mis à jour.");
+      toast.success("Plan mis à jour.");
     },
     onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Erreur lors de la mise à jour.",
-      );
+      toast.error(error.response?.data?.message || "Erreur de mise à jour.");
     },
   });
 
@@ -111,408 +108,243 @@ export const PlanDetailsPage = () => {
       approvePlan(Number(id), data),
     onSuccess: (updatedPlan) => {
       queryClient.invalidateQueries({ queryKey: ["plan", id] });
-      toast.success(
-        updatedPlan.validation_status === "approuve"
-          ? "Plan approuvé avec succès."
-          : "Plan rejeté."
-      );
+      toast.success(updatedPlan.status === "approuve" ? "Approuvé." : "Rejeté.");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Erreur lors de la validation.");
+      toast.error(error.response?.data?.message || "Erreur.");
     },
   });
 
   const canApprove =
-    plan?.validation_status === "en_attente" &&
+    plan?.status === "en_attente" &&
     (isAdmin() ||
       (hasRole("responsable_dr") &&
         plan?.site?.centre?.direction_id.toString() === user?.direction_id?.toString()));
 
-  const isOwner = user?.id === plan?.creator?.keycloak_id;
-  const canModify = isAdmin() || isOwner;
+  const isOwner = user?.id === plan?.creator?.id;
+  const canManage = isAdmin() || isOwner || hasRole(["responsable_cdc", "responsable_formation"]);
+  const canModify = canManage || hasRole("responsable_dr");
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <Skeleton className="h-10 w-64" />
-        </div>
-        <Skeleton className="h-[200px] w-full" />
-        <Skeleton className="h-[400px] w-full" />
+      <div className="py-40 text-center text-slate-400 font-medium animate-pulse">
+        Chargement des dossiers stratégiques...
       </div>
     );
   }
 
   if (!plan) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <h2 className="text-xl font-bold">Plan introuvable</h2>
+      <div className="py-40 text-center space-y-6">
+        <h2 className="text-3xl font-bold">Plan introuvable.</h2>
         <Button asChild variant="outline">
-          <Link to="/plans">Retour à la liste</Link>
+          <Link to="/plans">Retour à l'archive</Link>
         </Button>
       </div>
     );
   }
 
-  const statusColors: Record<string, string> = {
-    draft: "bg-gray-100 text-gray-800",
-    active: "bg-blue-100 text-blue-800",
-    completed: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800",
-  };
-
-  const statusLabels: Record<string, string> = {
-    draft: "Brouillon",
-    active: "Actif",
-    completed: "Terminé",
-    cancelled: "Annulé",
-  };
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+    <div className="space-y-10 page-transition">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-muted shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="h-10 w-10 shrink-0 rounded-full bg-muted/50 hover:bg-muted"
-          >
-            <Link to="/plans">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-black tracking-tight text-primary">
-                {plan.title || plan.formation?.title || "Plan de Formation"}
-              </h1>
-              <Badge
-                variant="secondary"
-                className={`uppercase text-[10px] font-bold ${statusColors[plan.status as string] || statusColors.draft}`}
-              >
-                {statusLabels[plan.status as string] || statusLabels.draft}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                {new Date(plan.start_date).toLocaleDateString("fr-FR")} -{" "}
-                {new Date(plan.end_date).toLocaleDateString("fr-FR")}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" />
-                {plan.site?.name || "Lieu non défini"}
-              </span>
-            </p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border pb-8">
+        <div className="space-y-4">
+          <Link to="/plans" className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-primary transition-colors">
+            <ArrowLeft className="h-3 w-3" /> Retour à l'archive
+          </Link>
+          <div className="space-y-2">
+             <div className="flex items-center gap-3">
+                <span className={cn(
+                  "px-2.5 py-0.5 text-[10px] font-bold rounded-full border", 
+                  plan.status === 'approuve' ? "bg-blue-100 text-blue-700 border-blue-200" : 
+                  plan.status === 'rejete' ? "bg-rose-100 text-rose-700 border-rose-200" :
+                  plan.status === 'en_attente' ? "bg-amber-100 text-amber-700 border-amber-200" :
+                  plan.status === 'completed' ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                  plan.status === 'cancelled' ? "bg-slate-200 text-slate-700 border-slate-300" :
+                  "bg-slate-100 text-slate-600 border-slate-300 border-dashed" // draft
+                )}>
+                  {plan.status === 'approuve' ? 'APPROUVÉ' : 
+                   plan.status === 'rejete' ? 'REJETÉ' : 
+                   plan.status === 'en_attente' ? 'EN ATTENTE D\'APPROBATION' :
+                   plan.status === 'completed' ? 'TERMINÉ' :
+                   plan.status === 'cancelled' ? 'ANNULÉ' : 'BROUILLON'}
+                </span>
+             </div>
+             <h1 className="text-4xl font-bold text-slate-900 leading-tight">
+                {plan.title || "Sans titre"}
+             </h1>
+             <div className="flex flex-wrap gap-6 pt-2">
+                <div className="flex items-center gap-2 text-slate-500">
+                   <Calendar className="h-4 w-4" />
+                   <span className="text-xs font-medium">{new Date(plan.start_date).toLocaleDateString()} — {new Date(plan.end_date).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-500">
+                   <MapPin className="h-4 w-4" />
+                   <span className="text-xs font-medium">{plan.site?.name || "Déploiement Global"}</span>
+                </div>
+             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          {canModify && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="font-bold border-primary/20 text-primary hover:bg-primary/5"
-              onClick={() => {
-                setEditingData({
-                  title: plan.title || "",
-                  site_id: plan.site_id,
-                  status: plan.status,
-                  start_date: plan.start_date.split("T")[0],
-                  end_date: plan.end_date.split("T")[0],
-                });
-                setIsEditDialogOpen(true);
-              }}
-            >
-              <Edit className="mr-2 h-4 w-4" /> Modifier Plan
-            </Button>
-          )}
-        </div>
+        
+        {canModify && (
+          <Button 
+            onClick={() => {
+              setEditingData({ title: plan.title || "", site_id: plan.site_id, status: plan.status, start_date: plan.start_date.split("T")[0], end_date: plan.end_date.split("T")[0] });
+              setIsEditDialogOpen(true);
+            }} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+             <Edit className="h-4 w-4" /> Modifier le plan
+          </Button>
+        )}
       </div>
 
-      {/* Approval Section */}
+      {/* Approval Alert */}
       {canApprove && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <Clock className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 font-bold">
-            Validation Requise
-          </AlertTitle>
-          <AlertDescription className="text-amber-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-2">
-            <span>
-              Ce plan de formation est en attente de validation régionale. En
-              tant que responsable, vous devez l'approuver ou le rejeter.
-            </span>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                variant="default"
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 font-bold"
-                onClick={() => approvalMutation.mutate({ status: "approuve" })}
-                disabled={approvalMutation.isPending}
-              >
-                <CheckCircle className="mr-2 h-4 w-4" /> Approuver
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="font-bold"
-                onClick={() => {
-                  const reason = prompt("Raison du rejet :");
-                  if (reason !== null) {
-                    approvalMutation.mutate({
-                      status: "rejete",
-                      rejection_reason: reason,
-                    });
-                  }
-                }}
-                disabled={approvalMutation.isPending}
-              >
-                <XCircleIcon className="mr-2 h-4 w-4" /> Rejeter
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
+        <div className="bg-blue-50 border border-blue-100 p-8 rounded-lg flex flex-col md:flex-row justify-between items-center gap-6">
+           <div className="space-y-1">
+              <h3 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5" /> Autorisation Requise
+              </h3>
+              <p className="text-sm text-blue-700">Ce plan est en attente d'approbation institutionnelle de votre secteur.</p>
+           </div>
+           <div className="flex gap-3">
+              <Button onClick={() => approvalMutation.mutate({ status: "approuve" })}>Approuver la stratégie</Button>
+              <Button variant="outline" onClick={() => { const r = prompt("Raison du rejet:"); if(r) approvalMutation.mutate({ status: "rejete", rejection_reason: r })}} className="text-rose-600 hover:text-rose-700">Rejeter</Button>
+           </div>
+        </div>
       )}
 
-      {/* Rejection Review (for owner) */}
-      {plan.validation_status === "rejete" && (
-        <Alert variant="destructive" className="bg-red-50 border-red-200">
-          <XCircleIcon className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-800 font-bold tracking-tight uppercase text-xs">
-            Plan Rejeté
-          </AlertTitle>
-          <AlertDescription className="text-red-700 mt-1">
-            <span className="font-semibold underline decoration-red-300">Raison:</span>{" "}
-            {plan.rejection_reason || "Aucune raison fournie."}
-          </AlertDescription>
-        </Alert>
+      {/* Resubmit Alert */}
+      {plan?.status === 'rejete' && (isAdmin() || isOwner) && (
+        <div className="bg-rose-50 border border-rose-200 p-8 rounded-lg flex flex-col md:flex-row justify-between items-center gap-6">
+           <div className="space-y-1">
+              <h3 className="text-lg font-bold text-rose-900 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" /> Plan Rejeté
+              </h3>
+              <p className="text-sm text-rose-700">
+                Ce plan a été rejeté. Motif : <span className="font-semibold">{plan.rejection_reason || "Aucun motif spécifié"}</span>.
+                Veuillez effectuer les modifications nécessaires puis le soumettre à nouveau.
+              </p>
+           </div>
+           <div className="flex gap-3">
+              <Button className="bg-rose-600 hover:bg-rose-700 text-white" onClick={() => updateMutation.mutate({ status: "en_attente" })}>
+                Soumettre à nouveau
+              </Button>
+           </div>
+        </div>
       )}
 
       {/* Tabs Layout */}
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 max-w-5xl bg-white border border-muted shadow-sm h-12 p-1 rounded-xl">
-          <TabsTrigger
-            value="general"
-            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
-          >
-            Général
-          </TabsTrigger>
-          <TabsTrigger
-            value="participants"
-            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
-          >
-            Bénéficiaires &amp; Formateurs
-          </TabsTrigger>
-          <TabsTrigger
-            value="logistics"
-            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
-          >
-            Logistique &amp; Hébergement
-          </TabsTrigger>
-          <TabsTrigger
-            value="sessions"
-            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
-          >
-            Calendrier
-          </TabsTrigger>
-          <TabsTrigger
-            value="absences"
-            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
-          >
-            Feuille d&apos;émargement
-          </TabsTrigger>
-          <TabsTrigger
-            value="documents"
-            className="text-xs font-bold rounded-lg data-[state=active]:bg-primary/5 data-[state=active]:text-primary"
-          >
-            Documents
-          </TabsTrigger>
+      <Tabs defaultValue="general" className="w-full space-y-8">
+        <TabsList className="bg-transparent border-b border-border w-full justify-start h-auto p-0 rounded-none gap-8">
+          {[
+            { id: "general", label: "Général" },
+            { id: "participants", label: "Bénéficiaires" },
+            { id: "logistics", label: "Logistique" },
+            { id: "sessions", label: "Sessions" },
+            { id: "absences", label: "Absences" },
+            { id: "documents", label: "Documents" }
+          ].map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="px-0 py-3 bg-transparent rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary text-xs font-semibold text-slate-500 hover:text-slate-900 transition-all"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <div className="mt-6">
-          <TabsContent
-            value="general"
-            className="focus-visible:outline-none focus-visible:ring-0"
-          >
+        <div className="pt-2">
+          <TabsContent value="general">
             <GeneralTab plan={plan} />
           </TabsContent>
-          <TabsContent
-            value="participants"
-            className="focus-visible:outline-none focus-visible:ring-0"
-          >
-            <ParticipantsTab
-              plan={plan}
-              onEditAssignments={() => setIsAssignmentsDialogOpen(true)}
-              canModify={canModify}
-            />
+          <TabsContent value="participants">
+            <ParticipantsTab plan={plan} onEditAssignments={() => setIsAssignmentsDialogOpen(true)} canModify={canModify} />
           </TabsContent>
-          <TabsContent
-            value="logistics"
-            className="focus-visible:outline-none focus-visible:ring-0"
-          >
-            <LogisticsTab
-              plan={plan}
-              onEditLogistics={() => setIsLogisticsDialogOpen(true)}
-              canModify={canModify}
-            />
+          <TabsContent value="logistics">
+            <LogisticsTab plan={plan} onEditLogistics={() => setIsLogisticsDialogOpen(true)} canModify={canModify} />
           </TabsContent>
-          <TabsContent
-            value="sessions"
-            className="focus-visible:outline-none focus-visible:ring-0"
-          >
+          <TabsContent value="sessions">
             <SessionsTab plan={plan} />
           </TabsContent>
-          <TabsContent
-            value="absences"
-            className="focus-visible:outline-none focus-visible:ring-0"
-          >
+          <TabsContent value="absences">
             <AbsenceTab plan={plan} />
           </TabsContent>
-          <TabsContent
-            value="documents"
-            className="focus-visible:outline-none focus-visible:ring-0"
-          >
-            <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
-              <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
-                <FolderOpen className="h-4 w-4" /> Ressources &amp; Documents du Plan
-              </h3>
+          <TabsContent value="documents">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-border pb-4">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <FolderOpen className="h-5 w-5 text-slate-400" />
+                  Gestion des documents
+                </h3>
+              </div>
               <DocumentsPanel entityType="plan" entityId={Number(id)} />
             </div>
           </TabsContent>
         </div>
       </Tabs>
 
-      {/* Assignments Dialog */}
-      <AssignmentsDialog
-        plan={plan}
-        open={isAssignmentsDialogOpen}
-        onOpenChange={setIsAssignmentsDialogOpen}
-      />
+      {/* Dialogs */}
+      <AssignmentsDialog plan={plan} open={isAssignmentsDialogOpen} onOpenChange={setIsAssignmentsDialogOpen} />
+      <LogisticsDialog plan={plan} open={isLogisticsDialogOpen} onOpenChange={setIsLogisticsDialogOpen} />
 
-      <LogisticsDialog
-        plan={plan}
-        open={isLogisticsDialogOpen}
-        onOpenChange={setIsLogisticsDialogOpen}
-      />
-
-      {/* Edit Plan Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              updateMutation.mutate(editingData);
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>Modifier le Plan de Formation</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Titre (Facultatif)</Label>
-                <Input
-                  id="title"
-                  value={editingData?.title || ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev!,
-                      title: e.target.value,
-                    }))
-                  }
-                  placeholder="Laisser vide pour utiliser le titre de la formation"
-                />
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Modifier le plan de formation</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(editingData); }} className="space-y-6 pt-4">
+            <div className="space-y-2">
+              <Label>Titre du plan</Label>
+              <Input value={editingData?.title || ""} onChange={(e) => setEditingData(p => ({ ...p!, title: e.target.value }))} required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Date de Début</Label>
+                <Input type="date" value={editingData?.start_date || ""} onChange={(e) => setEditingData(p => ({ ...p!, start_date: e.target.value }))} required />
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="site">Lieu de formation</Label>
-                <Select
-                  value={editingData?.site_id.toString()}
-                  onValueChange={(val) =>
-                    setEditingData((prev) => ({
-                      ...prev!,
-                      site_id: parseInt(val),
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir un site" />
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Date de Fin</Label>
+                <Input type="date" value={editingData?.end_date || ""} onChange={(e) => setEditingData(p => ({ ...p!, end_date: e.target.value }))} required />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Lieu de formation</Label>
+                <Select value={editingData?.site_id ? String(editingData.site_id) : ""} onValueChange={(v) => setEditingData(p => ({ ...p!, site_id: Number(v) }))}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Choisir un site..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {sites?.map((site) => (
-                      <SelectItem key={site.id} value={site.id.toString()}>
-                        {site.name}
-                      </SelectItem>
-                    ))}
+                    {sites?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="status">Statut</Label>
-                <Select
-                  value={editingData?.status}
-                  onValueChange={(val) =>
-                    setEditingData((prev) => ({ ...prev!, status: val }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir un statut" />
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Statut global</Label>
+                <Select value={editingData?.status || ""} onValueChange={(v) => setEditingData(p => ({ ...p!, status: v }))}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Statut..." />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Brouillon</SelectItem>
-                    <SelectItem value="active">Actif</SelectItem>
+                    <SelectItem value="en_attente">En attente (Soumettre)</SelectItem>
+                    <SelectItem value="approuve">Approuvé</SelectItem>
+                    <SelectItem value="rejete">Rejeté</SelectItem>
                     <SelectItem value="completed">Terminé</SelectItem>
                     <SelectItem value="cancelled">Annulé</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="start_date">Date de début</Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    value={editingData?.start_date || ""}
-                    onChange={(e) =>
-                      setEditingData((prev) => ({
-                        ...prev!,
-                        start_date: e.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="end_date">Date de fin</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={editingData?.end_date || ""}
-                    onChange={(e) =>
-                      setEditingData((prev) => ({
-                        ...prev!,
-                        end_date: e.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </div>
-              </div>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Mise à jour..." : "Enregistrer"}
-              </Button>
+            <DialogFooter className="pt-4">
+               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Annuler</Button>
+               <Button type="submit" disabled={updateMutation.isPending}>
+                 {updateMutation.isPending ? "Enregistrement..." : "Enregistrer les modifications"}
+               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -523,294 +355,146 @@ export const PlanDetailsPage = () => {
 
 function GeneralTab({ plan }: { plan: TrainingPlan }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
-        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
-          <Layers className="h-4 w-4" /> Détails de la Formation
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="formal-card p-8 space-y-6">
+        <h3 className="text-lg font-bold border-b border-slate-100 pb-4 flex items-center gap-3">
+          <Layers className="h-5 w-5 text-primary" /> Détails du programme
         </h3>
         {plan.formation ? (
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">
-                Titre
-              </p>
-              <p className="text-sm font-bold">{plan.formation.title}</p>
+          <div className="space-y-6">
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Thématique principale</p>
+              <p className="text-xl font-bold text-slate-900">{plan.formation.title}</p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">
-                Description
-              </p>
-              <p className="text-sm text-gray-700">
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Description stratégique</p>
+              <p className="text-sm text-slate-600 leading-relaxed">
                 {plan.formation.description}
               </p>
             </div>
           </div>
         ) : (
-          <p className="text-sm italic text-muted-foreground">
-            Aucune formation liée.
-          </p>
+          <p className="text-sm italic text-slate-400">Aucun programme lié.</p>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
-        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
-          <MapPin className="h-4 w-4" /> Détails du Site
+      <div className="formal-card p-8 space-y-6">
+        <h3 className="text-lg font-bold border-b border-slate-100 pb-4 flex items-center gap-3">
+          <MapPin className="h-5 w-5 text-primary" /> Site de déploiement
         </h3>
         {plan.site ? (
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">
-                Établissement
-              </p>
-              <p className="text-sm font-bold">{plan.site.name}</p>
+          <div className="space-y-6">
+            <div className="space-y-1">
+               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Institution d'accueil</p>
+               <p className="text-xl font-bold text-slate-900">{plan.site.name}</p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">
-                Adresse
-              </p>
-              <p className="text-sm text-gray-700">{plan.site.address}</p>
+            <div className="grid grid-cols-2 gap-6">
+               <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Centre Administratif</p>
+                  <p className="text-xs font-semibold text-slate-700">{plan.site.centre?.name || "Global"}</p>
+               </div>
+               <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Adresse</p>
+                  <p className="text-xs font-medium text-slate-600">{plan.site.address}</p>
+               </div>
             </div>
-            {plan.site.centre && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">
-                  Centre de rattachement
-                </p>
-                <p className="text-sm text-gray-700">
-                  {plan.site.centre.name} ({plan.site.centre.code})
-                </p>
-              </div>
-            )}
           </div>
         ) : (
-          <p className="text-sm italic text-muted-foreground">
-            Aucun site lié.
-          </p>
+          <p className="text-sm italic text-slate-400">Aucune affectation de site.</p>
         )}
       </div>
     </div>
   );
 }
 
-function ParticipantsTab({
-  plan,
-  onEditAssignments,
-  canModify,
-}: {
-  plan: TrainingPlan;
-  onEditAssignments: () => void;
-  canModify: boolean;
-}) {
+function ParticipantsTab({ plan, onEditAssignments, canModify }: { plan: TrainingPlan; onEditAssignments: () => void; canModify: boolean; }) {
   const assignments = plan.theme_assignments || [];
 
-  const columns: ColumnDef<any>[] = [
-    {
-      id: "participant",
-      header: "Bénéficiaire",
-      cell: ({ row }) => {
-        const participant = row.original.participant;
-        return (
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="secondary"
-              className="h-6 w-6 p-0 flex items-center justify-center rounded-full shrink-0"
-            >
-              <UserIcon className="h-3 w-3" />
-            </Badge>
-            <div className="flex flex-col min-w-0">
-              <span className="font-bold text-xs truncate">
-                {participant
-                  ? `${participant.first_name} ${participant.last_name}`
-                  : "Inconnu"}
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase font-black">
-                {participant?.direction?.name || "---"} •{" "}
-                {participant?.matricule || "---"}
-              </span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      header: "Thématique",
-      accessorKey: "theme.title",
-      cell: ({ row }) => (
-        <span className="text-xs font-medium">{row.original.theme?.title}</span>
-      ),
-    },
-    {
-      id: "trainer",
-      header: "Formateur Assigné",
-      cell: ({ row }) => {
-        const trainer = row.original.trainer;
-        return (
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="h-6 w-6 p-0 flex items-center justify-center rounded-full shrink-0 border-primary/30 text-primary"
-            >
-              <UserIcon className="h-3 w-3" />
-            </Badge>
-            <span className="text-xs font-bold">
-              {trainer
-                ? `${trainer.first_name} ${trainer.last_name}`
-                : "Inconnu"}
-            </span>
-          </div>
-        );
-      },
-    },
-  ];
-
   return (
-    <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
-          Affectations par Thématique
-        </h3>
+    <div className="space-y-6">
+      <div className="flex justify-between items-end border-b border-slate-100 pb-4">
+        <h3 className="text-xl font-bold">Bénéficiaires & Formateurs</h3>
         {canModify && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEditAssignments}
-            className="font-bold text-xs"
-          >
-            <Edit className="h-3.5 w-3.5 mr-2" />
-            Modifier les Affectations
+          <Button onClick={onEditAssignments} variant="outline" size="sm" className="h-8 text-xs font-semibold">
+            <Edit className="h-3 w-3 mr-2" /> Réassigner
           </Button>
         )}
       </div>
-      <DataTable
-        columns={columns}
-        data={assignments}
-        searchKey="participant"
-        placeholder="Rechercher par bénéficiaire ou thème..."
-      />
+      <div className="grid grid-cols-1 gap-4">
+        {assignments.map((item, i) => (
+           <div key={i} className="formal-card p-6 flex flex-col md:flex-row md:items-center gap-8 group hover:bg-slate-50 transition-colors">
+              <div className="flex-1 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-md bg-slate-100 flex items-center justify-center font-bold text-slate-600 shrink-0">
+                  {item.participant?.first_name[0]}{item.participant?.last_name[0]}
+                </div>
+                <div>
+                   <h4 className="text-base font-bold text-slate-900">{item.participant?.first_name} {item.participant?.last_name}</h4>
+                   <p className="text-xs text-slate-500 font-medium">Matricule: {item.participant?.matricule}</p>
+                </div>
+              </div>
+              <div className="flex-1">
+                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Module Affecté</p>
+                 <p className="text-xs font-semibold text-slate-700">{item.theme?.title}</p>
+              </div>
+              <div className="flex-1 flex items-center gap-3">
+                 <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-primary">
+                    <UserIcon className="h-4 w-4" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Formateur Animateur</p>
+                    <p className="text-xs font-semibold text-slate-700">{item.trainer?.first_name} {item.trainer?.last_name}</p>
+                 </div>
+              </div>
+           </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function LogisticsTab({
-  plan,
-  onEditLogistics,
-  canModify,
-}: {
-  plan: TrainingPlan;
-  onEditLogistics: () => void;
-  canModify: boolean;
-}) {
+function LogisticsTab({ plan, onEditLogistics, canModify }: { plan: TrainingPlan; onEditLogistics: () => void; canModify: boolean; }) {
   const accommodations = plan.plan_accommodations || [];
-
-  const columns: ColumnDef<any>[] = [
-    {
-      id: "user",
-      header: "Personne",
-      cell: ({ row }) => {
-        const user = row.original.user;
-        const isTrainer = plan.trainers?.some((t) => t.id === user?.id);
-        const roleLabel = isTrainer ? "Formateur" : "Participant";
-
-        return (
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={isTrainer ? "outline" : "secondary"}
-              className="h-6 w-6 p-0 flex items-center justify-center rounded-full shrink-0"
-            >
-              <UserIcon className="h-3 w-3" />
-            </Badge>
-            <div className="flex flex-col min-w-0">
-              <span className="font-bold text-xs truncate">
-                {user ? `${user.first_name} ${user.last_name}` : "Inconnu"}
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase font-black">
-                {roleLabel} • {user?.matricule || "---"}
-              </span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      id: "accommodation",
-      header: "Hébergement",
-      cell: ({ row }) => {
-        const acc = row.original.accommodation;
-        if (!acc)
-          return (
-            <span className="text-xs italic text-muted-foreground">
-              Aucun / Autonome
-            </span>
-          );
-
-        return (
-          <div className="flex items-center gap-2">
-            <Hotel className="h-3 w-3 text-muted-foreground" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold">{acc.name}</span>
-              <span className="text-[10px] text-muted-foreground capitalize">
-                {acc.type.replace("_", " ")}
-              </span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      id: "period",
-      header: "Période",
-      cell: ({ row }) => {
-        const checkIn = row.original.check_in_date;
-        const checkOut = row.original.check_out_date;
-
-        if (!checkIn && !checkOut)
-          return <span className="text-xs text-muted-foreground">---</span>;
-
-        return (
-          <div className="flex flex-col">
-            <span className="text-xs flex items-center gap-1">
-              <span className="text-[10px] uppercase text-muted-foreground font-bold w-12">
-                Arrivée:
-              </span>
-              {checkIn ? new Date(checkIn).toLocaleDateString("fr-FR") : "---"}
-            </span>
-            <span className="text-xs flex items-center gap-1 text-muted-foreground">
-              <span className="text-[10px] uppercase font-bold w-12">
-                Départ:
-              </span>
-              {checkOut
-                ? new Date(checkOut).toLocaleDateString("fr-FR")
-                : "---"}
-            </span>
-          </div>
-        );
-      },
-    },
-  ];
-
   return (
-    <div className="bg-white rounded-xl border border-muted p-6 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
-          Liste des Réservations
-        </h3>
-        {canModify && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEditLogistics}
-            className="font-bold text-xs"
-          >
-            <Edit className="h-3.5 w-3.5 mr-2" />
-            Modifier les Réservations
-          </Button>
-        )}
-      </div>
-      <DataTable
-        columns={columns}
-        data={accommodations}
-        searchKey="user"
-        placeholder="Rechercher..."
-      />
+    <div className="space-y-6">
+       <div className="flex justify-between items-end border-b border-slate-100 pb-4">
+          <h3 className="text-xl font-bold">Logistique & Hébergement</h3>
+          {canModify && (
+            <Button onClick={onEditLogistics} variant="outline" size="sm" className="h-8 text-xs font-semibold">
+              <Edit className="h-3 w-3 mr-2" /> Mettre à jour la logistique
+            </Button>
+          )}
+       </div>
+       <div className="grid grid-cols-1 gap-4">
+          {accommodations.map((item, i) => (
+            <div key={i} className="formal-card p-6 flex flex-col md:flex-row md:items-center gap-10 group hover:bg-slate-50 transition-colors">
+               <div className="flex-1 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-md bg-slate-100 flex items-center justify-center font-bold text-slate-600 shrink-0">
+                     {item.user?.first_name[0]}{item.user?.last_name[0]}
+                  </div>
+                  <div>
+                     <h4 className="text-base font-bold text-slate-900">{item.user?.first_name} {item.user?.last_name}</h4>
+                     <p className="text-xs text-slate-500 font-medium capitalize">{item.user?.role?.replace('_', ' ')}</p>
+                  </div>
+               </div>
+               <div className="flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Hébergement</p>
+                  <p className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                     <Hotel className="h-3.5 w-3.5 text-primary" /> {item.accommodation?.name || "Autonome"}
+                  </p>
+               </div>
+               <div className="flex-1 grid grid-cols-2 gap-4">
+                  <div>
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Check-in</p>
+                     <p className="text-xs font-medium text-slate-600">{item.check_in_date ? new Date(item.check_in_date).toLocaleDateString() : "---"}</p>
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Check-out</p>
+                     <p className="text-xs font-medium text-slate-600">{item.check_out_date ? new Date(item.check_out_date).toLocaleDateString() : "---"}</p>
+                  </div>
+               </div>
+            </div>
+          ))}
+       </div>
     </div>
   );
 }

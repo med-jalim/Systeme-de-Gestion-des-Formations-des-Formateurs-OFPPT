@@ -14,6 +14,7 @@ use App\Http\Controllers\API\CentresController;
 use App\Http\Controllers\API\DirectionsController;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\FilesController;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,7 +27,12 @@ use App\Http\Controllers\API\FilesController;
 |
 */
 
-Route::middleware('keycloak.auth')->group(function () {
+Route::post('login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout']);
 
     // Profile
     Route::get('profile', [\App\Http\Controllers\API\ProfileController::class, 'show']);
@@ -49,6 +55,7 @@ Route::middleware('keycloak.auth')->group(function () {
     
     // Users
     Route::apiResource('users', UsersController::class);
+    Route::post('users/{user}/reset-password', [UsersController::class, 'resetPassword']);
     
     // Directions
     Route::apiResource('directions', DirectionsController::class);

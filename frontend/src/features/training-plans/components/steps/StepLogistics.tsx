@@ -65,7 +65,7 @@ export const StepLogistics = () => {
   const { data: accommodationsList, isLoading: accLoading } = useQuery<any[]>({
     queryKey: ["accommodations"],
     queryFn: async () => {
-      const response = await axiosInstance.get("/accommodations");
+      const response = await axiosInstance.get("/accommodations?all=true");
       return response.data;
     },
   });
@@ -74,7 +74,7 @@ export const StepLogistics = () => {
   const { data: allUsers, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["users"],
     queryFn: async () => {
-      const response = await axiosInstance.get("/users");
+      const response = await axiosInstance.get("/users?all=true");
       return response.data;
     },
   });

@@ -20,6 +20,7 @@ class UserFactory extends Factory
             'first_name'   => $this->faker->firstName(),
             'last_name'    => $this->faker->lastName(),
             'email'        => $this->faker->unique()->safeEmail(),
+            'password'     => \Illuminate\Support\Facades\Hash::make('password'),
             'role'         => User::ROLE_FORMATEUR_PARTICIPANT,
             'centre_id'    => Centre::factory(),
             'direction_id' => Direction::factory(),

@@ -23,7 +23,7 @@ export function RoleGuard({
   }
 
   if (!user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Admin automatically bypasses all restrictions

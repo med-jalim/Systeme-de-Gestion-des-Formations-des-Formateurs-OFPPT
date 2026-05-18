@@ -19,7 +19,6 @@ class TrainingPlan extends Model
         'start_date',
         'end_date',
         'created_by',
-        'validation_status',
         'validated_by',
         'rejection_reason',
     ];

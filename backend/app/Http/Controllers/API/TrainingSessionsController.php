@@ -12,7 +12,7 @@ class TrainingSessionsController extends Controller
     {
         $query = TrainingSession::query()->with(['theme', 'trainer']);
 
-        $authUser = request()->attributes->get('auth_user');
+        $authUser = auth()->user();
         if ($authUser) {
             if ($authUser->role === 'responsable_dr') {
                 $query->whereHas('trainingPlan', function ($q) use ($authUser) {
@@ -80,7 +80,7 @@ class TrainingSessionsController extends Controller
 
     private function authorizeSessionEdit(TrainingSession $session = null, $planId = null): void
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         if (!$user) return;
 
         if ($user->role === 'responsable_cdc') {

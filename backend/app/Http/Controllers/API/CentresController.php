@@ -11,10 +11,12 @@ class CentresController extends Controller
     public function index()
     {
         $query = Centre::with('direction')->withCount('sites');
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
 
         if ($user && $user->role === 'responsable_dr' && $user->direction_id) {
             $query->where('direction_id', $user->direction_id);
+        } elseif ($user && $user->role === 'responsable_cdc' && $user->centre_id) {
+            $query->where('id', $user->centre_id);
         }
 
         return response()->json($query->get());
@@ -22,7 +24,7 @@ class CentresController extends Controller
 
     public function store(Request $request)
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
 
         if ($user && $user->role === 'responsable_dr' && $user->direction_id) {
             $request->merge(['direction_id' => $user->direction_id]);
@@ -40,14 +42,14 @@ class CentresController extends Controller
 
     public function show(Centre $centre)
     {
-        $this->authorizeResponsableDr($centre);
+        $this->authorizeCentreAccess($centre);
         return response()->json($centre->load('direction')->loadCount('sites'));
     }
 
     public function update(Request $request, Centre $centre)
     {
-        $this->authorizeResponsableDr($centre);
-        $user = request()->attributes->get('auth_user');
+        $this->authorizeCentreAccess($centre);
+        $user = auth()->user();
 
         if ($user && $user->role === 'responsable_dr' && $user->direction_id) {
             $request->merge(['direction_id' => $user->direction_id]);
@@ -65,18 +67,22 @@ class CentresController extends Controller
 
     public function destroy(Centre $centre)
     {
-        $this->authorizeResponsableDr($centre);
+        $this->authorizeCentreAccess($centre);
         $centre->delete();
         return response()->noContent();
     }
 
-    private function authorizeResponsableDr(Centre $centre): void
+    private function authorizeCentreAccess(Centre $centre): void
     {
-        $user = request()->attributes->get('auth_user');
-        if ($user && $user->role === 'responsable_dr') {
-            if ($centre->direction_id !== $user->direction_id) {
-                abort(403, 'Action non autorisée sur ce centre.');
-            }
+        $user = auth()->user();
+        if (!$user) return;
+
+        if ($user->role === 'responsable_dr' && $centre->direction_id !== $user->direction_id) {
+            abort(403, 'Action non autorisée sur ce centre.');
+        }
+
+        if ($user->role === 'responsable_cdc' && $centre->id !== $user->centre_id) {
+            abort(403, 'Action non autorisée. Ce centre n\'est pas le vôtre.');
         }
     }
 }

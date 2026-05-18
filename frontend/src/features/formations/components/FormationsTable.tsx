@@ -1,5 +1,5 @@
 import type { Formation } from "../types";
-import { Button } from "@/components/ui/button";
+import { Edit, Trash2, Eye, BookOpen } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface FormationsTableProps {
@@ -19,85 +19,64 @@ interface FormationsTableProps {
   canEdit?: boolean;
 }
 
-export const FormationsTable = ({
-  formations,
-  onEdit,
-  onDelete,
-  onView,
-  canEdit = true,
-}: FormationsTableProps) => {
+export const FormationsTable = ({ formations, onEdit, onDelete, onView, canEdit = true }: FormationsTableProps) => {
   return (
-    <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+    <div className="formal-card">
       <Table>
-        <TableHeader className="bg-muted/50">
-          <TableRow>
-            <TableHead className="font-bold">Titre</TableHead>
-            <TableHead className="font-bold">Période</TableHead>
-            <TableHead className="font-bold">Thématiques</TableHead>
-            <TableHead className="text-right font-bold">Actions</TableHead>
+        <TableHeader>
+          <TableRow className="bg-slate-50 hover:bg-slate-50">
+            <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Programme</TableHead>
+            <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Calendrier</TableHead>
+            <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Contenu</TableHead>
+            <TableHead className="text-right font-semibold text-xs uppercase tracking-wider py-4 px-6">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {formations.length === 0 ? (
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className="text-center py-10 text-muted-foreground"
-              >
-                Aucune formation trouvée.
+              <TableCell colSpan={4} className="py-20 text-center text-slate-400 italic">
+                Aucun programme trouvé dans le catalogue.
               </TableCell>
             </TableRow>
           ) : (
-            formations.map((formation) => (
-              <TableRow
-                key={formation.id}
-                className="hover:bg-muted/30 transition-colors"
-              >
-                <TableCell className="font-bold text-primary">
-                  {formation.title}
+            formations.map((f) => (
+              <TableRow key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                <TableCell className="py-4 px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-md bg-primary/5 border border-primary/10 flex items-center justify-center text-primary">
+                      <BookOpen className="h-4 w-4" />
+                    </div>
+                    <span className="font-semibold text-sm text-slate-900">{f.title}</span>
+                  </div>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {new Date(formation.start_date).toLocaleDateString("fr-FR")} -{" "}
-                  {new Date(formation.end_date).toLocaleDateString("fr-FR")}
+                <TableCell className="py-4 px-6">
+                   <div className="flex flex-col">
+                      <span className="text-xs text-slate-600 font-medium">
+                        {new Date(f.start_date).toLocaleDateString()} — {new Date(f.end_date).toLocaleDateString()}
+                      </span>
+                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="font-bold">
-                    {formation.themes?.length || 0} thèmes
-                  </Badge>
+                <TableCell className="py-4 px-6">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    {f.themes?.length || 0} Modules
+                  </span>
                 </TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onView(formation)}
-                    title="Voir détails"
-                    className="hover:bg-primary/10 hover:text-primary rounded-full h-8 w-8"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  
-                  {canEdit && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(formation)}
-                        title="Modifier"
-                        className="hover:bg-blue-50 hover:text-blue-600 rounded-full h-8 w-8 text-blue-500"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(formation.id)}
-                        title="Supprimer"
-                        className="hover:bg-red-50 hover:text-red-600 rounded-full h-8 w-8 text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+                <TableCell className="text-right py-4 px-6">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => onView(f)} className="h-8 w-8 text-slate-400 hover:text-primary">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {canEdit && (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(f)} className="h-8 w-8 text-slate-400 hover:text-primary">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(f.id)} className="h-8 w-8 text-slate-400 hover:text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))

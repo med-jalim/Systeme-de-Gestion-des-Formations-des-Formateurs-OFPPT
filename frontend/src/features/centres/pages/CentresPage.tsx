@@ -61,7 +61,7 @@ type FormData = { code: string; name: string; direction_id: string };
 const EMPTY: FormData = { code: "", name: "", direction_id: "" };
 
 export const CentresPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, hasRole } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dirFilter, setDirFilter] = useState<string>("all");
@@ -179,9 +179,11 @@ export const CentresPage = () => {
             Gérez les centres de formation rattachés aux directions.
           </p>
         </div>
-        <Button onClick={openCreate} className="gap-2 font-bold">
-          <Plus className="h-4 w-4" /> Nouveau Centre
-        </Button>
+        {(isAdmin() || hasRole("responsable_dr")) && (
+          <Button onClick={openCreate} className="gap-2 font-bold">
+            <Plus className="h-4 w-4" /> Nouveau Centre
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -312,14 +314,16 @@ export const CentresPage = () => {
                       >
                         <Edit className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => setDeleteTarget(c)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {(isAdmin() || hasRole("responsable_dr")) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setDeleteTarget(c)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

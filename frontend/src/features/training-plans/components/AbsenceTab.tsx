@@ -30,6 +30,7 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/providers/AuthProvider";
 
 interface AbsenceTabProps {
   plan: TrainingPlan;
@@ -37,10 +38,13 @@ interface AbsenceTabProps {
 
 export function AbsenceTab({ plan }: AbsenceTabProps) {
   const queryClient = useQueryClient();
+  const { hasRole, isAdmin } = useAuth();
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [localAbsences, setLocalAbsences] = useState<
     Record<number, Partial<Absence>>
   >({});
+
+  const canEdit = isAdmin() || hasRole(["responsable_formation", "responsable_dr", "formateur_animateur", "formateur_participant"]);
 
   const { data: sessions } = useQuery({
     queryKey: ["sessions", plan.id],
@@ -143,18 +147,20 @@ export function AbsenceTab({ plan }: AbsenceTabProps) {
           </Select>
         </div>
 
-        <Button
-          onClick={handleSave}
-          disabled={!selectedSessionId || updateMutation.isPending}
-          className="gap-2 w-full sm:w-auto"
-        >
-          {updateMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          Enregistrer les modifications
-        </Button>
+        {canEdit && (
+          <Button
+            onClick={handleSave}
+            disabled={!selectedSessionId || updateMutation.isPending}
+            className="gap-2 w-full sm:w-auto"
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Enregistrer les modifications
+          </Button>
+        )}
       </div>
 
       {!selectedSessionId ? (
@@ -178,12 +184,12 @@ export function AbsenceTab({ plan }: AbsenceTabProps) {
           </div>
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead>Participant</TableHead>
-                <TableHead className="w-[150px] text-center">Présent</TableHead>
-                <TableHead className="w-[150px] text-center">Retard</TableHead>
-                <TableHead className="w-[150px] text-center">Absent</TableHead>
-                <TableHead>Justification (si absent)</TableHead>
+              <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Participant</TableHead>
+                <TableHead className="w-[150px] text-center font-semibold text-xs uppercase tracking-wider py-4 px-6">Présent</TableHead>
+                <TableHead className="w-[150px] text-center font-semibold text-xs uppercase tracking-wider py-4 px-6">Retard</TableHead>
+                <TableHead className="w-[150px] text-center font-semibold text-xs uppercase tracking-wider py-4 px-6">Absent</TableHead>
+                <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Justification</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -192,8 +198,8 @@ export function AbsenceTab({ plan }: AbsenceTabProps) {
                   status: "present",
                 };
                 return (
-                  <TableRow key={participant.id}>
-                    <TableCell>
+                  <TableRow key={participant.id} className="hover:bg-slate-50/50 transition-colors">
+                    <TableCell className="py-4 px-6">
                       <div className="flex flex-col">
                         <span className="font-bold text-sm">
                           {participant.first_name} {participant.last_name}
@@ -203,7 +209,7 @@ export function AbsenceTab({ plan }: AbsenceTabProps) {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-4 px-6">
                       <Button
                         variant={
                           state.status === "present" ? "default" : "outline"
@@ -215,49 +221,51 @@ export function AbsenceTab({ plan }: AbsenceTabProps) {
                             : "text-muted-foreground hover:text-green-600"
                         }`}
                         onClick={() =>
-                          handleStatusChange(participant.id, "present")
+                          canEdit && handleStatusChange(participant.id, "present")
                         }
                       >
                         <CheckCircle2 className="h-5 w-5" />
                       </Button>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-4 px-6">
                       <Button
                         variant={
                           state.status === "late" ? "default" : "outline"
                         }
                         size="sm"
+                        disabled={!canEdit}
                         className={`h-8 w-8 p-0 rounded-full transition-all ${
                           state.status === "late"
                             ? "bg-amber-500 hover:bg-amber-600 shadow-md scale-110"
                             : "text-muted-foreground hover:text-amber-500"
                         }`}
                         onClick={() =>
-                          handleStatusChange(participant.id, "late")
+                          canEdit && handleStatusChange(participant.id, "late")
                         }
                       >
                         <Clock className="h-5 w-5" />
                       </Button>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-4 px-6">
                       <Button
                         variant={
                           state.status === "absent" ? "default" : "outline"
                         }
                         size="sm"
+                        disabled={!canEdit}
                         className={`h-8 w-8 p-0 rounded-full transition-all ${
                           state.status === "absent"
                             ? "bg-red-600 hover:bg-red-700 shadow-md scale-110"
                             : "text-muted-foreground hover:text-red-600"
                         }`}
                         onClick={() =>
-                          handleStatusChange(participant.id, "absent")
+                          canEdit && handleStatusChange(participant.id, "absent")
                         }
                       >
                         <XCircle className="h-5 w-5" />
                       </Button>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4 px-6">
                       {state.status === "absent" && (
                         <Input
                           placeholder="Motif..."

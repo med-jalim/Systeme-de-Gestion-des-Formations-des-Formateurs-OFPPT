@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -15,7 +16,7 @@ class User extends Authenticatable
     const ROLE_FORMATEUR_ANIMATEUR = 'formateur_animateur';
     const ROLE_FORMATEUR_PARTICIPANT = 'formateur_participant';
 
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'utilisateurs';
 
@@ -26,15 +27,21 @@ class User extends Authenticatable
         'last_name',
         'email',
         'role',
+        'password',
         'centre_id',
         'direction_id',
     ];
 
-    protected $hidden = ['remember_token'];
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
     protected function casts(): array
     {
-        return [];
+        return [
+            'password' => 'hashed',
+        ];
     }
 
     public function isAdmin(): bool

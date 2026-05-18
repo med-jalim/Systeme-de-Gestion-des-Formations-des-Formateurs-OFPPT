@@ -1,136 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
-
-
 @layer base {
   :root {
+    /* Sober State Palette: Trust, Stability, Professionalism */
     --background: 210 20% 98%;
     --foreground: 222 47% 11%;
+    
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
+
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 216 100% 35%; /* Official Dark Blue from logo */
+    
+    --primary: 211 72% 37%; /* OFPPT Royal Blue */
     --primary-foreground: 210 40% 98%;
-    --secondary: 145 100% 32%; /* Official Green from logo */
-    --secondary-foreground: 210 40% 98%;
-    --muted: 210 40% 96.1%;
+    
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    
+    --muted: 210 40% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 198 25% 60%; /* Official Gray-Blue from logo */
-    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 216 100% 35%;
-    --radius: 0.4rem;
+    --ring: 211 72% 37%;
+    
+    --radius: 0.375rem; /* Standard professional radius */
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.1%;
+    /* ... dark mode details ... */
+  }
+}
+
+@layer components {
+  /* Formal Table Styles */
+  .formal-table-header {
+    @apply bg-slate-50 border-b border-border text-xs font-semibold text-slate-500 uppercase tracking-wider py-3 px-4;
+  }
+  
+  .formal-table-row {
+    @apply bg-white border-b border-border transition-colors hover:bg-slate-50/50;
+  }
+
+  /* Formal Card Style */
+  .formal-card {
+    @apply bg-white border border-border shadow-sm rounded-md overflow-hidden;
+  }
+
+  /* Formal Button */
+  .formal-button {
+    @apply px-4 py-2 bg-primary text-white text-sm font-semibold rounded-md transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50;
+  }
+
+  /* Formal Badge */
+  .formal-badge {
+    @apply px-2.5 py-0.5 text-[11px] font-semibold rounded-full border;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight text-slate-900;
   }
 }
 
-.compact-layout {
-  --container-padding: 1rem;
-  --section-gap: 1rem;
-  --card-padding: 0.75rem;
-  --input-height: 2rem;
+/* Functional Transitions */
+.page-transition {
+  @apply animate-in fade-in duration-300;
 }
-

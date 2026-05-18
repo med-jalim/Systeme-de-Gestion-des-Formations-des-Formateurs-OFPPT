@@ -1,13 +1,15 @@
 import { z } from "zod";
 
-export const planInfoSchema = z.object({
+export const planInfoBaseSchema = z.object({
   formation_id: z.number().min(1, "Veuillez sélectionner une formation"),
   site_id: z.number().min(1, "Veuillez sélectionner un site"),
   title: z.string().optional(),
-  status: z.enum(["draft", "active", "completed", "cancelled"]).default("draft"),
+  status: z.enum(["draft", "en_attente", "approuve", "rejete", "completed", "cancelled"]).default("draft"),
   start_date: z.string().min(1, "La date de début est requise"),
   end_date: z.string().min(1, "La date de fin est requise"),
-}).refine((data) => {
+});
+
+export const planInfoSchema = planInfoBaseSchema.refine((data) => {
   if (data.start_date && data.end_date) {
     return new Date(data.end_date) >= new Date(data.start_date);
   }
@@ -51,7 +53,7 @@ export const planLogisticsSchema = z.object({
 });
 
 // Full schema for final submission
-export const createTrainingPlanSchema = planInfoSchema
+export const createTrainingPlanSchema = planInfoBaseSchema
   .merge(planTrainersSchema)
   .merge(planParticipantsSchema)
   .merge(planLogisticsSchema);

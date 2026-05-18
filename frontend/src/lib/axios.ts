@@ -1,5 +1,4 @@
 import axios from "axios";
-import keycloak from "@/lib/keycloak";
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
@@ -9,18 +8,12 @@ const axiosInstance = axios.create({
   },
 });
 
-// Inject Keycloak Bearer token on every request
+// Inject Bearer token from localStorage on every request
 axiosInstance.interceptors.request.use(
-  async (config) => {
-    if (keycloak.authenticated) {
-      // Refresh token if expiring within 30s
-      try {
-        await keycloak.updateToken(30);
-      } catch {
-        keycloak.logout();
-        return Promise.reject(new Error("Session expirée."));
-      }
-      config.headers.Authorization = `Bearer ${keycloak.token}`;
+  (config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -32,7 +25,9 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      keycloak.logout();
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }

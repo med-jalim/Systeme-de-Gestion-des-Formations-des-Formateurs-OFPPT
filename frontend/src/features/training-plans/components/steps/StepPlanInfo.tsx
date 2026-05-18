@@ -1,6 +1,7 @@
 import { useFormContext } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "@/lib/axios";
+import { useAuth } from "@/providers/AuthProvider";
 import type { PlanInfoFormValues } from "../../schemas/plan.schema";
 import {
   FormField,
@@ -17,17 +18,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, GraduationCap, MapPin, Type } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Calendar, GraduationCap, MapPin, Type, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const StepPlanInfo = () => {
   const { control } = useFormContext<PlanInfoFormValues>();
+  const { user, isAdmin } = useAuth();
 
   // Fetch Formations
   const { data: formations, isLoading: isLoadingFormations } = useQuery({
     queryKey: ["formations"],
     queryFn: async () => {
       const response = await axiosInstance.get("/formations");
-      return response.data;
+      const data = response.data;
+      if (isAdmin()) return data;
+      return data.filter((f: any) => f.created_by === user?.id);
     },
   });
 
@@ -35,7 +54,7 @@ export const StepPlanInfo = () => {
   const { data: sites, isLoading: isLoadingSites } = useQuery({
     queryKey: ["sites"],
     queryFn: async () => {
-      const response = await axiosInstance.get("/sites");
+      const response = await axiosInstance.get("/sites?all=true");
       return response.data;
     },
   });
@@ -122,36 +141,58 @@ export const StepPlanInfo = () => {
           control={control}
           name="site_id"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-2">
+            <FormItem className="flex flex-col mt-2">
+              <FormLabel className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 mb-1">
                 <MapPin className="w-3 h-3" />
                 Site de Formation
               </FormLabel>
-              <Select
-                onValueChange={(val) => field.onChange(Number(val))}
-                value={field.value ? String(field.value) : ""}
-              >
-                <FormControl>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue
-                      placeholder={
-                        isLoadingSites ? "Chargement..." : "Choisir un site..."
-                      }
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {sites?.map((s: any) => (
-                    <SelectItem
-                      key={s.id}
-                      value={String(s.id)}
-                      className="text-xs"
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full justify-between h-9 text-xs font-normal border-input",
+                        !field.value && "text-muted-foreground"
+                      )}
                     >
-                      {s.name} ({s.centre?.name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      {field.value
+                        ? sites?.find((s: any) => s.id === field.value)?.name
+                        : "Rechercher un site..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Rechercher un site..." className="text-xs h-9" />
+                    <CommandList>
+                      <CommandEmpty>Aucun site trouvé.</CommandEmpty>
+                      <CommandGroup>
+                        {sites?.map((s: any) => (
+                          <CommandItem
+                            value={`${s.name} ${s.centre?.name}`}
+                            key={s.id}
+                            onSelect={() => {
+                              field.onChange(s.id);
+                            }}
+                            className="text-xs"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                s.id === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {s.name} <span className="text-muted-foreground ml-1">({s.centre?.name})</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}

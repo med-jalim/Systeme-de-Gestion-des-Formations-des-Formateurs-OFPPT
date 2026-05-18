@@ -76,7 +76,7 @@ export const StepTrainers = () => {
   const { data: allUsers, isLoading: trainersLoading } = useQuery<User[]>({
     queryKey: ["users"],
     queryFn: async () => {
-      const response = await axiosInstance.get("/users");
+      const response = await axiosInstance.get("/users?all=true");
       return response.data;
     },
   });

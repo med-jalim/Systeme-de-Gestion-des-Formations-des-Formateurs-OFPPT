@@ -147,204 +147,156 @@ export const SitesPage = () => {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-transition">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <MapPin className="h-6 w-6 text-primary" />
-            </div>
-            Gestion des Sites
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gérez les sites de formation rattachés aux centres.
+          <h1 className="text-2xl font-bold text-slate-900">Gestion des Sites</h1>
+          <p className="text-sm text-slate-500">
+             Administration des lieux de formation et des structures rattachées.
           </p>
         </div>
-        <Button onClick={openCreate} className="gap-2 font-bold">
-          <Plus className="h-4 w-4" /> Nouveau Site
+        <Button onClick={openCreate} className="font-semibold">
+          <Plus className="mr-2 h-4 w-4" /> Nouveau Site
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white border rounded-xl p-4 shadow-sm">
-          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-            Total Sites
-          </p>
-          <p className="text-3xl font-black text-primary">{sites.length}</p>
+      {/* Stats KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="formal-card p-6 flex flex-col gap-2">
+           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Sites Actifs</span>
+           <div className="flex items-end justify-between">
+              <h3 className="text-3xl font-bold text-slate-900">{sites.length}</h3>
+              <MapPin className="h-5 w-5 text-primary opacity-20" />
+           </div>
         </div>
-        <div className="bg-white border rounded-xl p-4 shadow-sm">
-          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-            Centres
-          </p>
-          <p className="text-3xl font-black text-primary">{centres.length}</p>
+        <div className="formal-card p-6 flex flex-col gap-2">
+           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Centres Administratifs</span>
+           <div className="flex items-end justify-between">
+              <h3 className="text-3xl font-bold text-slate-900">{centres.length}</h3>
+              <Building2 className="h-5 w-5 text-primary opacity-20" />
+           </div>
         </div>
       </div>
 
-      {/* Search + Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <div className="p-4 border-b flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un site..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <span className="text-xs text-muted-foreground font-medium">
-            {filteredSites.length} résultat(s)
-          </span>
+      {/* Filter Area */}
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-slate-50 p-4 rounded-lg border border-border">
+        <div className="relative flex-1 w-full">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+           <Input 
+             placeholder="Rechercher par nom, centre ou adresse..." 
+             className="pl-9 bg-white"
+             value={search}
+             onChange={(e) => setSearch(e.target.value)}
+           />
         </div>
+        <div className="text-xs text-slate-500 font-medium px-2">
+           {filteredSites.length} site(s) identifié(s)
+        </div>
+      </div>
 
-        {isLoading ? (
-          <div className="p-12 text-center text-muted-foreground text-sm">Chargement...</div>
-        ) : filteredSites.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <Building2 className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-            <p className="text-muted-foreground text-sm">Aucun site trouvé.</p>
-            <Button variant="outline" size="sm" onClick={openCreate}>
-              Créer le premier site
-            </Button>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="font-black text-[11px] uppercase tracking-widest">Nom</TableHead>
-                <TableHead className="font-black text-[11px] uppercase tracking-widest">Centre</TableHead>
-                <TableHead className="font-black text-[11px] uppercase tracking-widest">Direction</TableHead>
-                <TableHead className="font-black text-[11px] uppercase tracking-widest">Adresse</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSites.map((site: any) => (
-                <TableRow key={site.id} className="hover:bg-muted/20 transition-colors">
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span className="font-bold text-sm">{site.name}</span>
+      {/* Institutional Table */}
+      <div className="formal-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50 hover:bg-slate-50">
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Nom du Site</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Centre Rattaché</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Direction</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Adresse</TableHead>
+              <TableHead className="text-right font-semibold text-xs uppercase tracking-wider py-4 px-6">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={5} className="py-20 text-center text-slate-400">Chargement...</TableCell></TableRow>
+            ) : filteredSites.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="py-20 text-center text-slate-400 italic">Aucun site trouvé.</TableCell></TableRow>
+            ) : (
+              filteredSites.map((site: any) => (
+                <TableRow key={site.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded bg-primary/5 flex items-center justify-center text-primary">
+                         <MapPin className="h-4 w-4" />
+                      </div>
+                      <span className="font-semibold text-sm text-slate-900">{site.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-semibold text-xs">
+                  <TableCell className="py-4 px-6">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
                       {site.centre?.name || "—"}
-                    </Badge>
+                    </span>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">
+                  <TableCell className="py-4 px-6">
+                    <span className="text-xs text-slate-500 font-medium">
                       {site.centre?.direction?.name || "—"}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">{site.address || "—"}</span>
+                  <TableCell className="py-4 px-6">
+                    <span className="text-xs text-slate-500 italic">{site.address || "—"}</span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => openEdit(site)}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
+                  <TableCell className="text-right py-4 px-6">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(site)} className="h-8 w-8 text-slate-400 hover:text-primary">
+                        <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => setDeleteTarget(site)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(site)} className="h-8 w-8 text-slate-400 hover:text-red-600">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Create / Edit Dialog */}
+      {/* Dialogs */}
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingSite ? "Modifier le Site" : "Nouveau Site"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label htmlFor="site-name">Nom du site *</Label>
-              <Input
-                id="site-name"
-                placeholder="Ex: Centre de Formation Agdal"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
+          <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+            <div className="space-y-1.5">
+              <Label>Nom du site</Label>
+              <Input placeholder="Ex: Centre de Formation Agdal" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="site-centre">Centre rattaché *</Label>
-              <Select
-                value={form.centre_id}
-                onValueChange={(v) => setForm({ ...form, centre_id: v })}
-                required
-              >
-                <SelectTrigger id="site-centre">
-                  <SelectValue placeholder="Sélectionner un centre..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {centres.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
-                      {c.code ? ` (${c.code})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-1.5">
+              <Label>Centre rattaché</Label>
+              <select value={form.centre_id} onChange={(e) => setForm({ ...form, centre_id: e.target.value })} className="w-full h-10 bg-white border border-border rounded-md px-3 text-sm outline-none focus:ring-1 focus:ring-primary" required>
+                <option value="">Sélectionner un centre...</option>
+                {centres.map((c) => (
+                  <option key={c.id} value={String(c.id)}>{c.name}</option>
+                ))}
+              </select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="site-address">Adresse</Label>
-              <Input
-                id="site-address"
-                placeholder="Ex: 12 Rue Hassan II, Rabat"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-              />
+            <div className="space-y-1.5">
+              <Label>Adresse physique</Label>
+              <Input placeholder="Adresse complète..." value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeDialog}>
-                Annuler
-              </Button>
-              <Button type="submit" disabled={isPending || !form.name || !form.centre_id}>
-                {isPending ? "Enregistrement..." : editingSite ? "Mettre à jour" : "Créer"}
-              </Button>
+            <DialogFooter className="pt-4">
+               <Button type="button" variant="outline" onClick={closeDialog}>Annuler</Button>
+               <Button type="submit" disabled={isPending}>{isPending ? "Enregistrement..." : "Confirmer"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le site ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vous êtes sur le point de supprimer <strong>{deleteTarget?.name}</strong>. Cette action est
-              irréversible et pourrait affecter les plans de formation liés.
+              Cette action est irréversible. Les plans de formation liés pourraient être affectés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
+              Confirmer la suppression
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

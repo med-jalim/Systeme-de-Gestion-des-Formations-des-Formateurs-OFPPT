@@ -18,23 +18,35 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "@/lib/axios";
 
-// Mock fallbacks for display
-const MOCK_THEMES = [
-  { id: 1, title: "Développement React Modern" },
-  { id: 2, title: "Architecture API REST" },
-  { id: 3, title: "Gestion d'Etat avec TanStack" },
-];
-
 export const StepReview = () => {
   const values = useWatch() as CreateTrainingPlanFormValues;
+  const formationId = values.formation_id;
+
+  // Fetch All Users for names
+  const { data: users } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const response = await axiosInstance.get("/users");
+      return response.data;
+    },
+  });
+
+  // Fetch Themes for this formation
+  const { data: themes } = useQuery({
+    queryKey: ["themes", formationId],
+    queryFn: async () => {
+      if (!formationId) return [];
+      const response = await axiosInstance.get(`/themes?formation_id=${formationId}`);
+      return response.data;
+    },
+    enabled: !!formationId,
+  });
 
   // Fetch Formations and Sites for names
   const { data: formations } = useQuery({
     queryKey: ["formations"],
     queryFn: async () => {
-      const response = await axiosInstance
-        .get("/formations")
-        .catch(() => ({ data: [] }));
+      const response = await axiosInstance.get("/formations").catch(() => ({ data: [] }));
       return response.data;
     },
   });
@@ -42,9 +54,7 @@ export const StepReview = () => {
   const { data: sites } = useQuery({
     queryKey: ["sites"],
     queryFn: async () => {
-      const response = await axiosInstance
-        .get("/sites")
-        .catch(() => ({ data: [] }));
+      const response = await axiosInstance.get("/sites").catch(() => ({ data: [] }));
       return response.data;
     },
   });
@@ -52,19 +62,22 @@ export const StepReview = () => {
   const { data: accommodations } = useQuery({
     queryKey: ["accommodations"],
     queryFn: async () => {
-      const response = await axiosInstance
-        .get("/accommodations")
-        .catch(() => ({ data: [] }));
+      const response = await axiosInstance.get("/accommodations").catch(() => ({ data: [] }));
       return response.data;
     },
   });
 
-  const formationName =
-    formations?.find((f: any) => f.id === values.formation_id)?.title ||
-    `ID: ${values.formation_id}`;
-  const siteName =
-    sites?.find((s: any) => s.id === values.site_id)?.name ||
-    `ID: ${values.site_id}`;
+  const formationName = formations?.find((f: any) => f.id === values.formation_id)?.title || `ID: ${values.formation_id}`;
+  const siteName = sites?.find((s: any) => s.id === values.site_id)?.name || `ID: ${values.site_id}`;
+
+  const getUserName = (id: number) => {
+    const u = users?.find((user: any) => user.id === id);
+    return u ? `${u.first_name} ${u.last_name}` : `ID: ${id}`;
+  };
+
+  const getThemeTitle = (id: number) => {
+    return themes?.find((t: any) => t.id === id)?.title || `ID: ${id}`;
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -169,9 +182,7 @@ export const StepReview = () => {
                   >
                     <div className="flex items-center gap-2">
                       <UserIcon className="w-3 h-3 text-muted-foreground" />
-                      <span className="font-bold">
-                        Utilisateur {acc.userId}
-                      </span>
+                      <span className="font-bold">{getUserName(acc.userId)}</span>
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="font-bold text-primary">{accName}</span>
@@ -215,21 +226,14 @@ export const StepReview = () => {
               >
                 <div className="font-bold text-xs text-foreground mb-2 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  Formateur {t.userId}
+                  {getUserName(t.userId)}
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {t.themeIds.map((tid) => {
-                    const theme = MOCK_THEMES.find((mt) => mt.id === tid);
-                    return (
-                      <Badge
-                        key={tid}
-                        variant="secondary"
-                        className="text-[9px] py-0 font-bold uppercase tracking-tight bg-amber-50 text-amber-900 border-amber-200"
-                      >
-                        {theme?.title || tid}
-                      </Badge>
-                    );
-                  })}
+                  {t.themeIds.map((tid) => (
+                    <Badge key={tid} variant="secondary" className="text-[9px] py-0 font-bold uppercase tracking-tight bg-amber-50 text-amber-900 border-amber-200">
+                      {getThemeTitle(tid)}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             ))}
@@ -239,38 +243,24 @@ export const StepReview = () => {
         {/* Participants */}
         <div className="space-y-3">
           <h4 className="text-[11px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2 px-1">
-            <UsersIcon className="w-3.5 h-3.5" />
-            Participants ({values.participants?.length || 0})
+            <UsersIcon className="w-3.5 h-3.5" /> Participants ({values.participants?.length || 0})
           </h4>
           <div className="space-y-2">
             {values.participants?.map((p: ParticipantAssignment) => (
-              <div
-                key={p.userId}
-                className="bg-card border rounded-xl p-3 shadow-sm border-l-4 border-l-blue-500"
-              >
+              <div key={p.userId} className="bg-card border rounded-xl p-3 shadow-sm border-l-4 border-l-blue-500">
                 <div className="font-bold text-xs mb-2 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  Participant {p.userId}
+                  {getUserName(p.userId)}
                 </div>
                 <div className="space-y-1.5">
-                  {p.assignments.map((as, idx) => {
-                    const theme = MOCK_THEMES.find(
-                      (mt) => mt.id === as.themeId,
-                    );
-                    return (
-                      <div
-                        key={idx}
-                        className="flex flex-col bg-muted/30 p-2 rounded-lg border border-transparent hover:border-blue-200 transition-colors"
-                      >
-                        <span className="text-[9px] font-bold text-foreground truncate">
-                          {theme?.title || `Thème ${as.themeId}`}
-                        </span>
-                        <span className="text-[8px] text-muted-foreground font-black uppercase">
-                          Encadré par: Formateur {as.trainerId}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {p.assignments.map((as, idx) => (
+                    <div key={idx} className="flex flex-col bg-muted/30 p-2 rounded-lg border border-transparent hover:border-blue-200 transition-colors">
+                      <span className="text-[9px] font-bold text-foreground truncate">{getThemeTitle(as.themeId)}</span>
+                      <span className="text-[8px] text-muted-foreground font-black uppercase">
+                        Encadré par: {getUserName(as.trainerId)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

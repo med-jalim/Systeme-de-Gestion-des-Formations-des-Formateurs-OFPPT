@@ -14,11 +14,20 @@ import { UsersPage } from "./features/users/pages/UsersPage";
 import { DashboardPage } from "./features/dashboard/pages/DashboardPage";
 import { SettingsPage } from "./features/settings/pages/SettingsPage";
 import { RoleGuard } from "./components/auth/RoleGuard";
+import { LoginPage } from "./features/auth/pages/LoginPage";
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
     path: "/",
-    element: <DashboardLayout />,
+    element: (
+      <RoleGuard>
+        <DashboardLayout />
+      </RoleGuard>
+    ),
     children: [
       {
         path: "settings",
@@ -35,7 +44,7 @@ export const router = createBrowserRouter([
       {
         path: "plans",
         element: (
-          <RoleGuard allowedRoles={["responsable_dr", "responsable_cdc", "responsable_formation"]}>
+          <RoleGuard allowedRoles={["responsable_dr", "responsable_cdc", "responsable_formation", "formateur_animateur", "formateur_participant"]}>
             <PlansListPage />
           </RoleGuard>
         ),
@@ -51,7 +60,7 @@ export const router = createBrowserRouter([
       {
         path: "plans/:id",
         element: (
-          <RoleGuard allowedRoles={["responsable_dr", "responsable_cdc", "responsable_formation"]}>
+          <RoleGuard allowedRoles={["responsable_dr", "responsable_cdc", "responsable_formation", "formateur_animateur", "formateur_participant"]}>
             <PlanDetailsPage />
           </RoleGuard>
         ),
@@ -83,7 +92,7 @@ export const router = createBrowserRouter([
       {
         path: "sites",
         element: (
-          <RoleGuard allowedRoles={["responsable_dr"]}>
+          <RoleGuard allowedRoles={["responsable_dr", "responsable_formation", "responsable_cdc"]}>
             <SitesPage />
           </RoleGuard>
         ),
@@ -91,7 +100,7 @@ export const router = createBrowserRouter([
       {
         path: "accommodations",
         element: (
-          <RoleGuard allowedRoles={["responsable_dr"]}>
+          <RoleGuard allowedRoles={["responsable_dr", "responsable_formation", "responsable_cdc"]}>
             <AccommodationsPage />
           </RoleGuard>
         ),
@@ -99,7 +108,7 @@ export const router = createBrowserRouter([
       {
         path: "directions",
         element: (
-          <RoleGuard allowedRoles={[]}>
+          <RoleGuard allowedRoles={["responsable_dr", "responsable_formation"]}>
             <DirectionsPage />
           </RoleGuard>
         ),
@@ -107,7 +116,7 @@ export const router = createBrowserRouter([
       {
         path: "centres",
         element: (
-          <RoleGuard allowedRoles={["responsable_dr"]}>
+          <RoleGuard allowedRoles={["responsable_dr", "responsable_formation", "responsable_cdc"]}>
             <CentresPage />
           </RoleGuard>
         ),
@@ -115,7 +124,7 @@ export const router = createBrowserRouter([
       {
         path: "users",
         element: (
-          <RoleGuard allowedRoles={[]}>
+          <RoleGuard allowedRoles={["responsable_formation"]}>
             <UsersPage />
           </RoleGuard>
         ),

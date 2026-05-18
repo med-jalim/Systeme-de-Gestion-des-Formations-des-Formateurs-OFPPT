@@ -52,10 +52,8 @@ export function SessionsTab({ plan }: SessionsTabProps) {
   const { user, hasRole, isAdmin } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
-  // Logic to determine if user can manage sessions
-  // Responsable CDC is read-only. Others can manage if they are admin or they created the plan.
-  const isOwner = user?.id === plan.creator?.keycloak_id;
-  const canManage = (isAdmin() || isOwner) && !hasRole("responsable_cdc");
+  const isOwner = user?.id === plan.creator?.id;
+  const canManage = isAdmin() || isOwner || hasRole(["responsable_cdc", "responsable_formation"]);
 
   const [newSession, setNewSession] = useState<Partial<TrainingSession>>({
     training_plan_id: plan.id,
@@ -298,12 +296,12 @@ export function SessionsTab({ plan }: SessionsTabProps) {
       <div className="bg-white rounded-xl border border-muted shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/30">
-              <TableHead>Date & Heure</TableHead>
-              <TableHead>Thématique</TableHead>
-              <TableHead>Formateur</TableHead>
-              <TableHead>Modalité</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-slate-50 hover:bg-slate-50">
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Date & Heure</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Thématique</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Formateur</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider py-4 px-6">Modalité</TableHead>
+              <TableHead className="text-right font-semibold text-xs uppercase tracking-wider py-4 px-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -318,8 +316,8 @@ export function SessionsTab({ plan }: SessionsTabProps) {
               </TableRow>
             ) : (
               sessions?.map((session) => (
-                <TableRow key={session.id} className="group transition-colors">
-                  <TableCell>
+                <TableRow key={session.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <TableCell className="py-4 px-6">
                     <div className="flex flex-col">
                       <span className="font-bold flex items-center gap-1.5 text-sm">
                         <CalendarIcon className="h-3.5 w-3.5 text-primary" />
@@ -332,19 +330,19 @@ export function SessionsTab({ plan }: SessionsTabProps) {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4 px-6">
                     <span className="text-sm font-medium">
                       {session.theme?.title}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4 px-6">
                     <span className="text-sm">
                       {session.trainer
                         ? `${session.trainer.first_name} ${session.trainer.last_name}`
                         : "---"}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       <Badge
                         variant={
@@ -373,7 +371,7 @@ export function SessionsTab({ plan }: SessionsTabProps) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-4 px-6">
                     {canManage && (
                       <Button
                         variant="ghost"

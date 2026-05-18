@@ -16,7 +16,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         $isDR = $user && $user->role === 'responsable_dr';
         $directionId = $user ? $user->direction_id : null;
         
@@ -102,7 +102,7 @@ class DashboardController extends Controller
 
         // ── Sessions per Month (last 6 months) ────────────────────────
         $sessionsPerMonth = (clone $sessionBaseQuery)->select(
-                DB::raw("TO_CHAR(date, 'YYYY-MM') as month"),
+                DB::raw("DATE_FORMAT(date, '%Y-%m') as month"),
                 DB::raw('count(*) as count')
             )
             ->where('date', '>=', now()->subMonths(6))

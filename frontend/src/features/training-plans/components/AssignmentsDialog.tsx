@@ -267,16 +267,34 @@ const UserSelectionSection = ({
     { accessorKey: "centre.name", header: "Centre" },
   ];
 
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+
+  const filteredUsers = useMemo(() => {
+    if (roleFilter === "all") return allUsers;
+    return allUsers.filter((u) => u.role === roleFilter);
+  }, [allUsers, roleFilter]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-lg">
           {title} ({selectedIds.length})
         </h3>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-[200px] h-9 text-xs">
+            <SelectValue placeholder="Filtrer par rôle" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les rôles</SelectItem>
+            <SelectItem value="formateur_animateur">Formateurs Animateurs</SelectItem>
+            <SelectItem value="formateur_vacataire">Vacataires</SelectItem>
+            <SelectItem value="responsable_cdc">Responsables CDC</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <DataTable
         columns={columns}
-        data={allUsers}
+        data={filteredUsers || []}
         searchKey="name"
         placeholder="Filtrer par nom..."
       />
@@ -320,6 +338,7 @@ const TrainerManagementSection = ({
       ),
     },
     {
+      id: "name",
       header: "Formateur",
       accessorFn: (u) => `${u.first_name} ${u.last_name}`,
       cell: ({ row }) => (
@@ -378,13 +397,33 @@ const TrainerManagementSection = ({
     },
   ];
 
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+
+  const filteredUsers = useMemo(() => {
+    if (roleFilter === "all") return allUsers;
+    return allUsers.filter((u) => u.role === roleFilter);
+  }, [allUsers, roleFilter]);
+
   return (
     <div className="space-y-4">
-      <h3 className="font-bold text-lg">Gérer les Formateurs & Thèmes</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-lg">Gérer les Formateurs & Thèmes</h3>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-[200px] h-9 text-xs">
+            <SelectValue placeholder="Filtrer par rôle" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les rôles</SelectItem>
+            <SelectItem value="formateur_animateur">Formateurs Animateurs</SelectItem>
+            <SelectItem value="formateur_vacataire">Vacataires</SelectItem>
+            <SelectItem value="responsable_cdc">Responsables CDC</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <DataTable
         columns={columns}
-        data={allUsers}
-        searchKey="Formateur"
+        data={filteredUsers || []}
+        searchKey="name"
         placeholder="Rechercher..."
       />
     </div>

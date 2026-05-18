@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 
 class SitesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $query = Site::with('centre', 'centre.direction');
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
 
         // Only CDC is restricted to their own centre's sites in the list
-        if ($user && $user->role === 'responsable_cdc') {
+        if ($user && $user->role === 'responsable_cdc' && !$request->has('all')) {
             $query->where('centre_id', $user->centre_id);
         }
 
@@ -23,7 +23,7 @@ class SitesController extends Controller
 
     public function store(Request $request)
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         if ($user && $user->role === 'responsable_cdc') {
             $request->merge(['centre_id' => $user->centre_id]);
         }
@@ -48,7 +48,7 @@ class SitesController extends Controller
 
     public function update(Request $request, Site $site)
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         if ($user && $user->role === 'responsable_cdc') {
             $request->merge(['centre_id' => $user->centre_id]);
         }
@@ -77,7 +77,7 @@ class SitesController extends Controller
 
     private function authorizeLocationAccess(Site $site = null, $centreId = null): void
     {
-        $user = request()->attributes->get('auth_user');
+        $user = auth()->user();
         if (!$user) return;
 
         if ($site) {
